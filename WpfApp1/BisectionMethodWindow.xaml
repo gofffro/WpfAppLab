@@ -3,10 +3,103 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:WpfApp1"
+        xmlns:lvc="clr-namespace:LiveCharts.Wpf;assembly=LiveCharts.Wpf"
         mc:Ignorable="d"
-        Title="BisectionMethodWindow" Height="450" Width="800">
+        Title="Метод дихотомии - Поиск минимума функции" 
+        Height="600" Width="800"
+        WindowStartupLocation="CenterScreen"
+        Closing="Window_Closing">
+
+    <Window.Background>
+        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#ebf2fa" Offset="0.0" />
+            <GradientStop Color="#e4edf6" Offset="0.6" />
+            <GradientStop Color="#dae3f0" Offset="1.0" />
+        </LinearGradientBrush>
+    </Window.Background>
+
     <Grid>
-        
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Menu -->
+        <Menu Grid.Row="0">
+            <MenuItem Header="Файл">
+                <MenuItem Header="Рассчитать" Click="Calculate_Click"/>
+                <MenuItem Header="Очистить" Click="Clear_Click"/>
+                <Separator/>
+                <MenuItem Header="Выход" Click="Exit_Click"/>
+            </MenuItem>
+        </Menu>
+
+        <!-- Input parameters -->
+        <GroupBox Grid.Row="1" Header="Параметры" Margin="10" Padding="10">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <Label Grid.Row="0" Grid.Column="0" Content="Функция f(x):" Margin="5"/>
+                <TextBox Grid.Row="0" Grid.Column="1" Name="txtFunction" Margin="5" 
+                         Text="x*x - 2*x + 1" ToolTip="Введите математическое выражение функции. Примеры: x^2, sin(x), exp(x)"/>
+
+                <Label Grid.Row="1" Grid.Column="0" Content="Начало интервала a:" Margin="5"/>
+                <TextBox Grid.Row="1" Grid.Column="1" Name="txtA" Margin="5" Text="0"/>
+
+                <Label Grid.Row="2" Grid.Column="0" Content="Конец интервала b:" Margin="5"/>
+                <TextBox Grid.Row="2" Grid.Column="1" Name="txtB" Margin="5" Text="2"/>
+
+                <Label Grid.Row="3" Grid.Column="0" Content="Точность ε:" Margin="5"/>
+                <TextBox Grid.Row="3" Grid.Column="1" Name="txtEpsilon" Margin="5" Text="0.001"/>
+
+                <Button Grid.Row="4" Grid.Column="1" Name="btnCalculate" Content="Рассчитать" 
+                        Margin="5" HorizontalAlignment="Right" Width="100" Click="Calculate_Click"/>
+            </Grid>
+        </GroupBox>
+
+        <!-- Results and Chart -->
+        <GroupBox Grid.Row="2" Header="Результаты" Margin="10" Padding="10">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- Results -->
+                <StackPanel Grid.Row="0" Orientation="Vertical" Margin="0,0,0,10">
+                    <TextBlock Name="lblResult" Text="Результат: " FontWeight="Bold" Margin="0,0,0,5"/>
+                    <TextBlock Name="lblFunctionValue" Text="f(min) = " FontWeight="Bold" Margin="0,0,0,5"/>
+                    <TextBlock Name="lblIterations" Text="Количество итераций: " FontWeight="Bold"/>
+                </StackPanel>
+
+                <!-- Chart -->
+                <lvc:CartesianChart Name="chart" LegendLocation="Right" Margin="0,-248,0,98">
+                    <lvc:CartesianChart.Series>
+                        <lvc:LineSeries Title="Функция" Values="{Binding FunctionValues}" 
+                                      PointGeometry="{x:Null}" LineSmoothness="0" Stroke="Blue" StrokeThickness="2"/>
+                        <lvc:ScatterSeries Title="Минимум" Values="{Binding MinimumPoint}" 
+                 PointGeometry="{x:Static lvc:DefaultGeometries.Circle}" 
+                 Stroke="Red" Fill="Red" StrokeThickness="3"/>
+                    </lvc:CartesianChart.Series>
+                    <lvc:CartesianChart.AxisX>
+                        <lvc:Axis Title="x"/>
+                    </lvc:CartesianChart.AxisX>
+                    <lvc:CartesianChart.AxisY>
+                        <lvc:Axis Title="f(x)"/>
+                    </lvc:CartesianChart.AxisY>
+                </lvc:CartesianChart>
+            </Grid>
+        </GroupBox>
     </Grid>
 </Window>
