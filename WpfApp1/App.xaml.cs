@@ -1,5 +1,6 @@
 ﻿using System.Configuration;
 using System.Data;
+using System.Diagnostics;
 using System.Windows;
 
 namespace WpfApp1
@@ -9,6 +10,10 @@ namespace WpfApp1
     /// </summary>
     public partial class App : Application
     {
+        private void Application_Exit(object sender, ExitEventArgs e)
+        {
+            Process.GetCurrentProcess().Kill();
+        }
     }
 
 }

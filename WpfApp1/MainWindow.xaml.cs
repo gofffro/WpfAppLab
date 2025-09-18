@@ -19,13 +19,24 @@ namespace WpfApp1
         public MainWindow()
         {
             InitializeComponent();
+            this.Closing += MainWindow_Closing;
+        }
+
+        private void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            Application.Current.Shutdown();
         }
 
         private void Button_Click(object sender, RoutedEventArgs e)
         {
             BisectionMethodWindow objBisectionMethod = new BisectionMethodWindow();
-            this.Visibility = Visibility.Hidden;
+            objBisectionMethod.Closed += BisectionWindow_Closed;
+            this.Hide();
             objBisectionMethod.Show();
+        }
+        private void BisectionWindow_Closed(object sender, EventArgs e)
+        {
+            this.Show(); 
         }
     }
 }

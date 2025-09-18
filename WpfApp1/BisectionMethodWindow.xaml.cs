@@ -22,6 +22,8 @@ namespace WpfApp1
 
             FunctionValues = new ChartValues<ObservablePoint>();
             MinimumPoint = new ChartValues<ObservablePoint>();
+
+            this.Closing += Window_Closing;
         }
 
         public BisectionMethodWindow(MainWindow mainWindow) : this()
@@ -63,7 +65,7 @@ namespace WpfApp1
         {
             if (string.IsNullOrWhiteSpace(txtA.Text) || string.IsNullOrWhiteSpace(txtB.Text) || string.IsNullOrWhiteSpace(txtEpsilon.Text) || string.IsNullOrWhiteSpace(txtFunction.Text))
             {
-                MessageBox.Show("Все поля должны быть заполнены!", "Ошибка ввода", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("В1се поля должны быть заполнены!", "Ошибка ввода", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return false;
             }
 
@@ -140,10 +142,15 @@ namespace WpfApp1
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            if (_mainWindow != null)
+            if (chart != null)
             {
-                _mainWindow.Visibility = Visibility.Visible;
+                chart.Series.Clear();
+                chart = null;
             }
+
+            FunctionValues?.Clear();
+            MinimumPoint?.Clear();
+            SeriesCollection?.Clear();
         }
     }
 }
