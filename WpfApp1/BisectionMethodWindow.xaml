@@ -61,7 +61,7 @@
                 <TextBox Grid.Row="2" Grid.Column="1" Name="txtB" Margin="5" Text="2"/>
 
                 <Label Grid.Row="3" Grid.Column="0" Content="Точность ε:" Margin="5"/>
-                <TextBox Grid.Row="3" Grid.Column="1" Name="txtEpsilon" Margin="5" Text="0.001"/>
+                <TextBox Grid.Row="3" Grid.Column="1" Name="txtEpsilon" Margin="5" Text="0,001"/>
 
                 <Button Grid.Row="4" Grid.Column="1" Name="btnCalculate" Content="Рассчитать" 
                         Margin="5" HorizontalAlignment="Right" Width="100" Click="Calculate_Click"/>
