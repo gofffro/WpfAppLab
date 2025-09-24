@@ -45,6 +45,24 @@ namespace WpfApp1
                 double epsilon = double.Parse(txtEpsilon.Text);
                 string function = txtFunction.Text;
 
+                if (function.Contains("^"))
+                {
+                    MessageBox.Show("Пожалуйста, используйте функцию pow(x,y) вместо оператора ^.\n\nПример: x^2 -> pow(x,2)",
+                                  "Неподдерживаемый оператор",
+                                  MessageBoxButton.OK,
+                                  MessageBoxImage.Warning);
+                    return;
+                }
+
+                else if (function.Contains("**"))
+                {
+                    MessageBox.Show("Пожалуйста, используйте функцию pow(x,y) вместо оператора **. \n\nПример: x**2 -> pow(x,2)",
+                        "Неподдерживаемый оператор",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                    return;
+                }
+
                 if (function.Trim().All(char.IsDigit))
                 {
                     MessageBox.Show("Функция является константой. Любая точка на интервале является решением.",
@@ -157,6 +175,32 @@ namespace WpfApp1
             FunctionValues?.Clear();
             MinimumPoint?.Clear();
             SeriesCollection?.Clear();
+        }
+
+        private void ShowSyntaxHelp()
+        {
+            string helpText = @"Поддерживаемые математические функции:
+
+Базовые операции: + - * /
+Возведение в степень: pow(x,y)  (например: pow(x,2))
+Тригонометрические: sin(x), cos(x), tan(x)
+Экспонента и логарифмы: exp(x), log(x), log10(x)
+Корни: sqrt(x)
+Модуль: abs(x)
+
+Константы: pi, e
+
+Примеры:
+• x^2 + 3*x + 1 → pow(x,2) + 3*x + 1
+• sin(x)^2 → pow(sin(x),2)
+• e^(2*x) → pow(e,2*x)";
+
+            MessageBox.Show(helpText, "Справка по синтаксису", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        private void Help_Click(object sender, RoutedEventArgs e)
+        {
+            ShowSyntaxHelp();
         }
     }
 }

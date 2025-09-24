@@ -33,6 +33,9 @@
                 <Separator/>
                 <MenuItem Header="Выход" Click="Exit_Click"/>
             </MenuItem>
+            <MenuItem Header="Справка">
+                <MenuItem Header="Синтаксис функций" Click="Help_Click"/>
+            </MenuItem>
         </Menu>
 
         <!-- Input parameters -->
