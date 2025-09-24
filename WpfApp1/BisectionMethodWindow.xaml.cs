@@ -45,6 +45,12 @@ namespace WpfApp1
                 double epsilon = double.Parse(txtEpsilon.Text);
                 string function = txtFunction.Text;
 
+                if (function.Trim().All(char.IsDigit))
+                {
+                    MessageBox.Show("Функция является константой. Любая точка на интервале является решением.",
+                                  "Особый случай", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+
                 DihotomyMethod method = new DihotomyMethod(function);
                 double minimum = method.FindMinimum(a, b, epsilon);
                 double minValue = method.CalculateFunction(minimum);

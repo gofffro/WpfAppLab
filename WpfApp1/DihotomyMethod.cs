@@ -77,6 +77,7 @@ namespace WpfApp1
                 {
                     return intResult;
                 }
+
                 if (result is decimal decimalResult)
                 {
                     return (double)decimalResult;
