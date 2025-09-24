@@ -49,6 +49,18 @@ namespace WpfApp1
 
                 function = PreprocessFunction(function);
 
+                if (function.ToLower().Contains("log") || function.ToLower().Contains("log10"))
+                {
+                    if (a <= 0)
+                    {
+                        MessageBox.Show("Внимание: логарифм не определен для x ≤ 0.\n" +
+                                      "Автоматически корректирую начало интервала на 0.001",
+                                      "Корректировка интервала", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        a = 0.001;
+                        txtA.Text = "0.001";
+                    }
+                }
+
                 if (function.Contains("^"))
                 {
                     MessageBox.Show("Пожалуйста, используйте функцию pow(x,y) вместо оператора ^.\n\nПример: x^2 -> pow(x,2)",
@@ -94,7 +106,8 @@ namespace WpfApp1
 
         private bool ValidateInput()
         {
-            if (string.IsNullOrWhiteSpace(txtA.Text) || string.IsNullOrWhiteSpace(txtB.Text) || string.IsNullOrWhiteSpace(txtEpsilon.Text) || string.IsNullOrWhiteSpace(txtFunction.Text))
+            if (string.IsNullOrWhiteSpace(txtA.Text) || string.IsNullOrWhiteSpace(txtB.Text) ||
+                string.IsNullOrWhiteSpace(txtEpsilon.Text) || string.IsNullOrWhiteSpace(txtFunction.Text))
             {
                 MessageBox.Show("Все поля должны быть заполнены!", "Ошибка ввода", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return false;
@@ -108,6 +121,27 @@ namespace WpfApp1
                     System.Globalization.CultureInfo.InvariantCulture, out double epsilon))
             {
                 MessageBox.Show("Параметры a, b и epsilon должны быть числами!", "Ошибка ввода", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+
+            if (Math.Abs(a) > 1e15 || Math.Abs(b) > 1e15)
+            {
+                MessageBox.Show("Значения a и b не должны превышать 10^15 по модулю!", "Ошибка ввода",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+
+            if (Math.Abs(b - a) > 1e10)
+            {
+                MessageBox.Show("Интервал [a, b] слишком большой! Максимальная длина: 10^10",
+                    "Ошибка ввода", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+
+            if (epsilon < 1e-15)
+            {
+                MessageBox.Show("Точность epsilon не должна быть меньше 10^-15!", "Ошибка ввода",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
                 return false;
             }
 

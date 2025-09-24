@@ -48,9 +48,24 @@ namespace WpfApp1
                     {
                         args.Result = Math.Log(Convert.ToDouble(args.Parameters[0].Evaluate()));
                     }
+                    else if (args.Parameters.Length == 2)
+                    {
+                        args.Result = Math.Log(Convert.ToDouble(args.Parameters[0].Evaluate()),
+                                             Convert.ToDouble(args.Parameters[1].Evaluate()));
+                    }
                     else
                     {
-                        args.Result = Math.Log(Convert.ToDouble(args.Parameters[0].Evaluate()), Convert.ToDouble(args.Parameters[1].Evaluate()));
+                        throw new ArgumentException("Функция log требует 1 или 2 аргумента");
+                    }
+                    break;
+                case "log10":
+                    if (args.Parameters.Length == 1)
+                    {
+                        args.Result = Math.Log10(Convert.ToDouble(args.Parameters[0].Evaluate()));
+                    }
+                    else
+                    {
+                        throw new ArgumentException("Функция log10 требует 1 аргумент");
                     }
                     break;
                 case "pow":
@@ -65,11 +80,21 @@ namespace WpfApp1
         {
             try
             {
+                if (Math.Abs(x) > 1e10)
+                {
+                    return double.MaxValue / 1000; // избегаем переполнения
+                }
+
                 _expression.Parameters["x"] = x;
                 var result = _expression.Evaluate();
 
                 if (result is double doubleResult)
                 {
+                    if (double.IsInfinity(doubleResult) || double.IsNaN(doubleResult))
+                    {
+                        return double.MaxValue;
+                    }
+
                     return doubleResult;
                 }
 
