@@ -103,6 +103,12 @@ namespace WpfApp1
                 throw new ArgumentException("Точность epsilon должна быть положительным числом");
             }
 
+            if (IsConstantFunction(a, b))
+            {
+                IterationsCount = 1;
+                return (a + b) / 2; // возвращаем середину интервала, по факту нейтральная точка
+            }
+
             IterationsCount = 0;
             double delta = epsilon / 3;
 
@@ -132,6 +138,21 @@ namespace WpfApp1
             }
 
             return (a + b) / 2;
+        }
+
+        public bool IsConstantFunction(double a, double b)
+        {
+            double[] testPoints = { a, (a + b) / 2, b, a + (b - a) / 4, a + 3 * (b - a) / 4 };
+            double firstValue = CalculateFunction(testPoints[0]);
+
+            foreach (double point in testPoints)
+            {
+                if (Math.Abs(CalculateFunction(point) - firstValue) > 1e-15)
+                {
+                    return false;
+                }
+            }
+            return true;
         }
     }
 }

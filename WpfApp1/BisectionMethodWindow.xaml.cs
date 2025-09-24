@@ -1,9 +1,11 @@
-﻿using System;
-using System.Windows;
-using LiveCharts;
-using LiveCharts.Wpf;
+﻿using LiveCharts;
 using LiveCharts.Defaults;
+using LiveCharts.Wpf;
+using System;
 using System.Data;
+using System.Globalization;
+using System.Text.RegularExpressions;
+using System.Windows;
 
 namespace WpfApp1
 {
@@ -40,10 +42,12 @@ namespace WpfApp1
                     return;
                 }
 
-                double a = double.Parse(txtA.Text);
-                double b = double.Parse(txtB.Text);
-                double epsilon = double.Parse(txtEpsilon.Text);
+                double a = ParseNumber(txtA.Text);
+                double b = ParseNumber(txtB.Text);
+                double epsilon = ParseNumber(txtEpsilon.Text);
                 string function = txtFunction.Text;
+
+                function = PreprocessFunction(function);
 
                 if (function.Contains("^"))
                 {
@@ -63,13 +67,16 @@ namespace WpfApp1
                     return;
                 }
 
-                if (function.Trim().All(char.IsDigit))
+                DihotomyMethod method = new DihotomyMethod(function);
+
+
+                if (method.IsConstantFunction(a, b))
                 {
-                    MessageBox.Show("Функция является константой. Любая точка на интервале является решением.",
+                    MessageBox.Show("Функция является константой. Любая точка на интервале является решением.\n" +
+                                  "Алгоритм вернет середину интервала.",
                                   "Особый случай", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
 
-                DihotomyMethod method = new DihotomyMethod(function);
                 double minimum = method.FindMinimum(a, b, epsilon);
                 double minValue = method.CalculateFunction(minimum);
 
@@ -201,6 +208,53 @@ namespace WpfApp1
         private void Help_Click(object sender, RoutedEventArgs e)
         {
             ShowSyntaxHelp();
+        }
+
+        private double ParseNumber(string numberText)
+        {
+            if (string.IsNullOrWhiteSpace(numberText))
+            {
+                throw new ArgumentException("Пустая строка");
+            }
+
+            // замена точки на запятую
+            string normalizedText = numberText.Replace(".", ",");
+
+            if (double.TryParse(normalizedText, NumberStyles.Any, CultureInfo.GetCultureInfo("ru-RU"), out double result))
+            {
+                return result;
+            }
+
+            // навсякий доп попытка
+            if (double.TryParse(numberText, NumberStyles.Any, CultureInfo.InvariantCulture, out result))
+            {
+                return result;
+            }
+
+            throw new ArgumentException($"Некорректный формат числа: {numberText}");
+        }
+
+        // сложная регулярка я её своровал
+        private string PreprocessFunction(string function)
+        {
+            if (string.IsNullOrWhiteSpace(function))
+            {
+                return function;
+            }
+
+            string result = function;
+
+            // заменяем запятые в функциях на специальные маркеры
+            result = Regex.Replace(result, @"pow\(([^,]+),([^)]+)\)", "pow($1|SEPARATOR|$2)");
+            result = Regex.Replace(result, @"log\(([^,]+),([^)]+)\)", "log($1|SEPARATOR|$2)");
+
+            result = result.Replace(",", ".");
+
+            // возвращаем запятые в функциях обратно
+            result = result.Replace("|SEPARATOR|", ",");
+
+            // теперь в функции поддерживается и точка и запятая
+            return result;
         }
     }
 }
