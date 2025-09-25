@@ -82,7 +82,7 @@ namespace WpfApp1
             {
                 if (Math.Abs(x) > 1e10)
                 {
-                    return double.MaxValue / 1000; // избегаем переполнения
+                    return double.MaxValue / 1000;
                 }
 
                 _expression.Parameters["x"] = x;
@@ -116,49 +116,116 @@ namespace WpfApp1
             }
         }
 
-        public double FindMinimum(double a, double b, double epsilon)
+        public List<double> FindRoots(double a, double b, double epsilon, int maxRoots = 10)
         {
             if (a >= b)
             {
-                throw new ArgumentException("Интервал [a, b] задан неверно: a должно быть меньше b");
+                throw new ArgumentException("Интервал [a, b] задан неверно");
             }
 
             if (epsilon <= 0)
             {
-                throw new ArgumentException("Точность epsilon должна быть положительным числом");
+                throw new ArgumentException("Точность epsilon должна быть положительной");
             }
 
-            if (IsConstantFunction(a, b))
-            {
-                IterationsCount = 1;
-                return (a + b) / 2; // возвращаем середину интервала, по факту нейтральная точка
-            }
-
+            List<double> roots = new List<double>();
             IterationsCount = 0;
-            double delta = epsilon / 3;
+
+            int segments = 100; 
+            double segmentStep = (b - a) / segments;
+
+            for (int i = 0; i < segments; ++i)
+            {
+                double segmentStart = a + i * segmentStep;
+                double segmentEnd = segmentStart + segmentStep;
+
+                double fStart = CalculateFunction(segmentStart);
+                double fEnd = CalculateFunction(segmentEnd);
+
+                if (Math.Abs(fStart) < epsilon)
+                {
+                    AddRootIfNew(roots, segmentStart, epsilon);
+                    continue;
+                }
+
+                if (fStart * fEnd < 0)
+                {
+                    double root = FindSingleRoot(segmentStart, segmentEnd, epsilon);
+                    AddRootIfNew(roots, root, epsilon);
+                }
+
+                else if (Math.Abs(fStart) < epsilon * 10 && Math.Abs(fEnd) < epsilon * 10)
+                {
+                    double mid = (segmentStart + segmentEnd) / 2;
+                    if (Math.Abs(CalculateFunction(mid)) < epsilon)
+                    {
+                        AddRootIfNew(roots, mid, epsilon);
+                    }
+                }
+
+                if (roots.Count >= maxRoots)
+                {
+                    break;
+                }
+            }
+
+            return roots;
+        }
+
+        private void AddRootIfNew(List<double> roots, double newRoot, double epsilon)
+        {
+            if (!roots.Any(root => Math.Abs(root - newRoot) < epsilon))
+            {
+                roots.Add(newRoot);
+            }
+        }
+
+        private double FindSingleRoot(double a, double b, double epsilon)
+        {
+            double fa = CalculateFunction(a);
+            double fb = CalculateFunction(b);
+
+            if (Math.Abs(fa) < epsilon)
+            {
+                return a;
+            }
+
+            if (Math.Abs(fb) < epsilon)
+            {
+                return b;
+            }
+
+            if (fa * fb >= 0)
+            {
+                throw new ArgumentException("На интервале нет смены знака");
+            }
 
             while (Math.Abs(b - a) > epsilon)
             {
-                double x1 = (a + b - delta) / 2;
-                double x2 = (a + b + delta) / 2;
-
-                double f1 = CalculateFunction(x1);
-                double f2 = CalculateFunction(x2);
-
-                if (f1 < f2)
-                {
-                    b = x2;
-                }
-                else
-                {
-                    a = x1;
-                }
+                double mid = (a + b) / 2;
+                double fmid = CalculateFunction(mid);
 
                 IterationsCount++;
 
+                if (Math.Abs(fmid) < epsilon)
+                {
+                    return mid;
+                }
+
+                if (fa * fmid < 0)
+                {
+                    b = mid;
+                    fb = fmid;
+                }
+                else
+                {
+                    a = mid;
+                    fa = fmid;
+                }
+
                 if (IterationsCount > 1000)
                 {
-                    throw new Exception("Превышено максимальное количество итераций (1000). " + "Возможно, функция не имеет минимума на заданном интервале.");
+                    break;
                 }
             }
 

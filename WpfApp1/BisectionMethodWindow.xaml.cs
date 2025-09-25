@@ -42,9 +42,9 @@ namespace WpfApp1
                     return;
                 }
 
-                double a = ParseNumber(txtA.Text);
-                double b = ParseNumber(txtB.Text);
-                double epsilon = ParseNumber(txtEpsilon.Text);
+                double a = double.Parse(txtA.Text.Replace(",", "."), CultureInfo.InvariantCulture);
+                double b = double.Parse(txtB.Text.Replace(",", "."), CultureInfo.InvariantCulture);
+                double epsilon = double.Parse(txtEpsilon.Text.Replace(",", "."), CultureInfo.InvariantCulture);
                 string function = txtFunction.Text;
 
                 function = PreprocessFunction(function);
@@ -81,26 +81,70 @@ namespace WpfApp1
 
                 DihotomyMethod method = new DihotomyMethod(function);
 
+                List<double> roots = method.FindRoots(a, b, epsilon);
 
-                if (method.IsConstantFunction(a, b))
+                if (roots.Count == 0)
                 {
-                    MessageBox.Show("Функция является константой. Любая точка на интервале является решением.\n" +
-                                  "Алгоритм вернет середину интервала.",
-                                  "Особый случай", MessageBoxButton.OK, MessageBoxImage.Information);
+                    lblResult.Text = "Корни не найдены на заданном интервале";
+                    lblFunctionValue.Text = "";
                 }
 
-                double minimum = method.FindMinimum(a, b, epsilon);
-                double minValue = method.CalculateFunction(minimum);
+                else
+                {
+                    lblResult.Text = $"Найдено корней: {roots.Count}";
+                    lblFunctionValue.Text = "См. точки на графике";
 
-                lblResult.Text = $"Минимум: x = {minimum:F6}";
-                lblFunctionValue.Text = $"f(min) = {minValue:F6}";
+                    if (roots.Count > 2)
+                    {
+                        MessageBox.Show($"Найдено {roots.Count} корней! Возможно, функция имеет много нулей или осциллирует.",
+                                      "Много корней", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    }
+                }
+
                 lblIterations.Text = $"Количество итераций: {method.IterationsCount}";
 
-                PlotGraph(a, b, minimum, method);
+                PlotGraphWithRoots(a, b, roots, method);
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Ошибка: {ex.Message}", "Ошибка вычисления", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void PlotGraphWithRoots(double a, double b, List<double> roots, DihotomyMethod method)
+        {
+            FunctionValues.Clear();
+            MinimumPoint.Clear();
+
+            int pointsCount = 100;
+            double step = (b - a) / pointsCount;
+
+ 
+            for (double x = a; x <= b; x += step)
+            {
+                try
+                {
+                    double y = method.CalculateFunction(x);
+                    FunctionValues.Add(new ObservablePoint(x, y));
+                }
+                catch
+                {
+
+                }
+            }
+
+
+            foreach (double root in roots)
+            {
+                try
+                {
+                    double y = method.CalculateFunction(root);
+                    MinimumPoint.Add(new ObservablePoint(root, y));
+                }
+                catch
+                {
+
+                }
             }
         }
 
@@ -162,37 +206,12 @@ namespace WpfApp1
             return true;
         }
 
-        private void PlotGraph(double a, double b, double minimum, DihotomyMethod method)
-        {
-            FunctionValues.Clear();
-            MinimumPoint.Clear();
-
-            int pointsCount = 100;
-            double step = (b - a) / pointsCount;
-
-            for (double x = a; x <= b; x += step)
-            {
-                try
-                {
-                    double y = method.CalculateFunction(x);
-                    FunctionValues.Add(new ObservablePoint(x, y));
-                }
-                catch
-                {
-             
-                }
-            }
-
-            double minY = method.CalculateFunction(minimum);
-            MinimumPoint.Add(new ObservablePoint(minimum, minY));
-        }
-
         private void Clear_Click(object sender, RoutedEventArgs e)
         {
-            txtA.Text = "1";
-            txtB.Text = "2";
-            txtEpsilon.Text = "0,001";
-            txtFunction.Text = "x*x - 2*x + 1";
+            txtA.Text = "-10";
+            txtB.Text = "10";
+            txtEpsilon.Text = "0,0001";
+            txtFunction.Text = "sin(x)";
             lblResult.Text = "Результат: ";
             lblFunctionValue.Text = "f(min) = ";
             lblIterations.Text = "Количество итераций: ";
@@ -244,29 +263,6 @@ namespace WpfApp1
             ShowSyntaxHelp();
         }
 
-        private double ParseNumber(string numberText)
-        {
-            if (string.IsNullOrWhiteSpace(numberText))
-            {
-                throw new ArgumentException("Пустая строка");
-            }
-
-            // замена точки на запятую
-            string normalizedText = numberText.Replace(".", ",");
-
-            if (double.TryParse(normalizedText, NumberStyles.Any, CultureInfo.GetCultureInfo("ru-RU"), out double result))
-            {
-                return result;
-            }
-
-            // навсякий доп попытка
-            if (double.TryParse(numberText, NumberStyles.Any, CultureInfo.InvariantCulture, out result))
-            {
-                return result;
-            }
-
-            throw new ArgumentException($"Некорректный формат числа: {numberText}");
-        }
 
         // сложная регулярка я её своровал
         private string PreprocessFunction(string function)

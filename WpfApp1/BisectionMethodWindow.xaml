@@ -82,7 +82,7 @@
                 <!-- Results -->
                 <StackPanel Grid.Row="0" Orientation="Vertical" Margin="0,0,0,10">
                     <TextBlock Name="lblResult" Text="Результат: " FontWeight="Bold" Margin="0,0,0,5"/>
-                    <TextBlock Name="lblFunctionValue" Text="f(min) = " FontWeight="Bold" Margin="0,0,0,5"/>
+                    <TextBlock Name="lblFunctionValue" Text="f(root) = " FontWeight="Bold" Margin="0,0,0,5"/>
                     <TextBlock Name="lblIterations" Text="Количество итераций: " FontWeight="Bold"/>
                 </StackPanel>
 
@@ -91,7 +91,7 @@
                     <lvc:CartesianChart.Series>
                         <lvc:LineSeries Title="Функция" Values="{Binding FunctionValues}" 
                                       PointGeometry="{x:Null}" LineSmoothness="0" Stroke="Blue" StrokeThickness="2"/>
-                        <lvc:ScatterSeries Title="Минимум" Values="{Binding MinimumPoint}" 
+                        <lvc:ScatterSeries Title="Ноль функции" Values="{Binding MinimumPoint}" 
                  PointGeometry="{x:Static lvc:DefaultGeometries.Circle}" 
                  Stroke="Red" Fill="Red" StrokeThickness="3"/>
                     </lvc:CartesianChart.Series>
