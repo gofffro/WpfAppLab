@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:lvc="clr-namespace:LiveCharts.Wpf;assembly=LiveCharts.Wpf"
         mc:Ignorable="d"
-        Title="Метод дихотомии - Поиск минимума функции" 
+        Title="Метод дихотомии - Поиск нулей функции" 
         Height="600" Width="800"
         WindowStartupLocation="CenterScreen"
         Closing="Window_Closing">
