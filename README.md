@@ -1,2 +1,3 @@
 # WpfApp1
-<img width="774" height="593" alt="image" src="https://github.com/user-attachments/assets/dfb8ac3f-8c2a-47ed-9559-576a4ddd0db7" />
+<img width="779" height="585" alt="image" src="https://github.com/user-attachments/assets/047df752-d207-4cbd-b22c-8e410249d5ff" />
+
