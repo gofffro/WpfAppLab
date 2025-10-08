@@ -9,6 +9,8 @@ using Microsoft.Win32;
 using System.IO;
 using System.Diagnostics;
 using WpfApp1.SLAY;
+using OfficeOpenXml;
+
 namespace WpfApp1.SLAY
 {
     public partial class SlayWindow : Window
@@ -21,6 +23,7 @@ namespace WpfApp1.SLAY
 
         public SlayWindow()
         {
+            ExcelPackage.License.SetNonCommercialPersonal("SLAY Solver App");
             InitializeComponent();
             InitializeDataGrids();
             UpdateStatus("Готов к работе");
@@ -112,13 +115,36 @@ namespace WpfApp1.SLAY
             if (!ValidateInputData()) return;
 
             UpdateStatus("Выполняются все методы...");
+            methodTimes.Clear();
 
-            await SolveGaussAsync();
-            await SolveJordanGaussAsync();
-            await SolveCramerAsync();
+            // ВЫПОЛНЯЕМ ПОСЛЕДОВАТЕЛЬНО, а не параллельно
+            var stopwatch = Stopwatch.StartNew();
 
-            UpdateStatus("Все методы завершены");
+            // Метод Гаусса
+            var gaussWatch = Stopwatch.StartNew();
+            var gaussResult = await SolveGaussAsync();
+            gaussWatch.Stop();
+            methodTimes["Гаусс"] = gaussWatch.Elapsed;
+            DisplayResult(gaussResult, "Гаусс");
+
+            // Метод Жордана-Гаусса  
+            var jordanWatch = Stopwatch.StartNew();
+            var jordanResult = await SolveJordanGaussAsync();
+            jordanWatch.Stop();
+            methodTimes["Жардан-Гаусс"] = jordanWatch.Elapsed;
+            DisplayResult(jordanResult, "Жардан-Гаусс");
+
+            // Метод Крамера
+            var cramerWatch = Stopwatch.StartNew();
+            var cramerResult = await SolveCramerAsync();
+            cramerWatch.Stop();
+            methodTimes["Крамер"] = cramerWatch.Elapsed;
+            DisplayResult(cramerResult, "Крамер");
+
+            stopwatch.Stop();
+
             ShowMethodComparison();
+            UpdateStatus("Все методы завершены");
         }
 
         private async Task SolveWithMethod(string methodName, Func<Task<double[]>> method)
@@ -343,10 +369,95 @@ namespace WpfApp1.SLAY
             UpdateStatus("Вектор B очищен");
         }
 
-        // Заглушки для импорта/экспорта
         private void LoadFromExcel_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("Функция импорта из Excel будет реализована в будущем", "Информация");
+            try
+            {
+                var openFileDialog = new Microsoft.Win32.OpenFileDialog();
+                openFileDialog.Filter = "Excel files (*.xlsx;*.xls)|*.xlsx;*.xls|All files (*.*)|*.*";
+                openFileDialog.Title = "Выберите файл Excel";
+
+                if (openFileDialog.ShowDialog() == true)
+                {
+                    LoadDataFromExcel(openFileDialog.FileName);
+                    UpdateStatus($"Данные загружены из {System.IO.Path.GetFileName(openFileDialog.FileName)}");
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка загрузки из Excel: {ex.Message}", "Ошибка");
+            }
+        }
+
+        private void LoadDataFromExcel(string filePath)
+        {
+            using (var package = new ExcelPackage(new FileInfo(filePath)))
+            {
+                if (package.Workbook.Worksheets.Count == 0)
+                    throw new Exception("В файле нет листов");
+
+                var worksheet = package.Workbook.Worksheets[0];
+
+                // Ищем данные матрицы A (начинаются со строки 2, столбца 1)
+                int rows = 0;
+                for (int i = 2; i <= 51; i++) // от строки 2 до 51
+                {
+                    if (worksheet.Cells[i, 1].Value == null || string.IsNullOrEmpty(worksheet.Cells[i, 1].Value.ToString()))
+                        break;
+                    rows++;
+                }
+
+                if (rows == 0)
+                    throw new Exception("Не найдены данные матрицы A");
+
+                // Предполагаем, что матрица квадратная
+                matrixSize = rows;
+                MatrixSizeTextBox.Text = rows.ToString();
+
+                // Загружаем матрицу A
+                var matrixData = new List<List<double>>();
+                for (int i = 0; i < rows; i++)
+                {
+                    var row = new List<double>();
+                    for (int j = 0; j < rows; j++)
+                    {
+                        double value = 0;
+                        if (worksheet.Cells[i + 2, j + 1].Value != null)
+                            double.TryParse(worksheet.Cells[i + 2, j + 1].Value.ToString(), out value);
+                        row.Add(value);
+                    }
+                    matrixData.Add(row);
+                }
+
+                // Загружаем вектор B (столбец после матрицы A)
+                var vectorData = new List<List<double>>();
+                for (int i = 0; i < rows; i++)
+                {
+                    double value = 0;
+                    if (worksheet.Cells[i + 2, rows + 1].Value != null)
+                        double.TryParse(worksheet.Cells[i + 2, rows + 1].Value.ToString(), out value);
+                    vectorData.Add(new List<double> { value });
+                }
+
+                // Обновляем интерфейс
+                InitializeDataGrids();
+                MatrixADataGrid.ItemsSource = matrixData;
+                VectorBDataGrid.ItemsSource = vectorData;
+
+                // Пытаемся загрузить вектор X если есть
+                if (worksheet.Cells[1, rows + 2]?.Value?.ToString() == "Вектор X")
+                {
+                    var resultData = new List<List<double>>();
+                    for (int i = 0; i < rows; i++)
+                    {
+                        double value = 0;
+                        if (worksheet.Cells[i + 2, rows + 2].Value != null)
+                            double.TryParse(worksheet.Cells[i + 2, rows + 2].Value.ToString(), out value);
+                        resultData.Add(new List<double> { value });
+                    }
+                    VectorXDataGrid.ItemsSource = resultData;
+                }
+            }
         }
 
         private void LoadFromGoogle_Click(object sender, RoutedEventArgs e)
@@ -356,7 +467,68 @@ namespace WpfApp1.SLAY
 
         private void ExportResults_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("Функция экспорта в Excel будет реализована в будущем", "Информация");
+            try
+            {
+                var saveFileDialog = new Microsoft.Win32.SaveFileDialog();
+                saveFileDialog.Filter = "Excel files (*.xlsx)|*.xlsx|All files (*.*)|*.*";
+                saveFileDialog.Title = "Сохранить результаты в Excel";
+                saveFileDialog.FileName = "SLAU_Results.xlsx";
+
+                if (saveFileDialog.ShowDialog() == true)
+                {
+                    ExportToExcel(saveFileDialog.FileName);
+                    UpdateStatus($"Результаты сохранены в {System.IO.Path.GetFileName(saveFileDialog.FileName)}");
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка экспорта в Excel: {ex.Message}", "Ошибка");
+            }
+        }
+
+        private void ExportToExcel(string filePath)
+        {
+            using (var package = new ExcelPackage())
+            {
+                var worksheet = package.Workbook.Worksheets.Add("СЛАУ Данные");
+
+                // Заголовки
+                worksheet.Cells[1, 1].Value = "Матрица A";
+                worksheet.Cells[1, matrixSize + 1].Value = "Вектор B";
+
+                // Матрица A
+                var matrixA = GetMatrixA();
+                for (int i = 0; i < matrixSize; i++)
+                {
+                    for (int j = 0; j < matrixSize; j++)
+                    {
+                        worksheet.Cells[i + 2, j + 1].Value = matrixA[i, j];
+                    }
+                }
+
+                // Вектор B
+                var vectorB = GetVectorB();
+                for (int i = 0; i < matrixSize; i++)
+                {
+                    worksheet.Cells[i + 2, matrixSize + 1].Value = vectorB[i];
+                }
+
+                // Вектор X (если есть результаты) - сохраняем в отдельном столбце
+                if (VectorXDataGrid.ItemsSource != null)
+                {
+                    worksheet.Cells[1, matrixSize + 2].Value = "Вектор X";
+                    var items = VectorXDataGrid.ItemsSource as List<List<double>>;
+                    for (int i = 0; i < matrixSize && i < items.Count; i++)
+                    {
+                        worksheet.Cells[i + 2, matrixSize + 2].Value = items[i][0];
+                    }
+                }
+
+                // Автоподбор ширины столбцов
+                worksheet.Cells[worksheet.Dimension.Address].AutoFitColumns();
+
+                package.SaveAs(new FileInfo(filePath));
+            }
         }
 
         // Вспомогательные методы
