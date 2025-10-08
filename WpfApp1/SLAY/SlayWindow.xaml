@@ -1,12 +1,199 @@
 ﻿<Window x:Class="WpfApp1.SLAY.SlayWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:WpfApp1.SLAY"
-        mc:Ignorable="d"
-        Title="SlayWindow" Height="450" Width="800">
-    <Grid>
-        
-    </Grid>
+        Title="Решение СЛАУ - Лабораторная работа №6" 
+        Height="800" Width="1200"
+        WindowStartupLocation="CenterScreen">
+    
+    <Window.Background>
+        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#ebf2fa" Offset="0.0" />
+            <GradientStop Color="#e4edf6" Offset="0.6" />
+            <GradientStop Color="#dae3f0" Offset="1.0" />
+        </LinearGradientBrush>
+    </Window.Background>
+
+    <Window.Resources>
+
+        <Style x:Key="HeaderTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="DarkBlue"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="5"/>
+        </Style>
+
+        <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="Navy"/>
+            <Setter Property="Margin" Value="0,10,0,5"/>
+        </Style>
+
+        <Style x:Key="DataGridStyle" TargetType="DataGrid">
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="AutoGenerateColumns" Value="False"/>
+            <Setter Property="CanUserAddRows" Value="True"/>
+            <Setter Property="CanUserDeleteRows" Value="True"/>
+            <Setter Property="AlternatingRowBackground" Value="LightCyan"/>
+        </Style>
+
+        <Style x:Key="ButtonStyle" TargetType="Button">
+            <Setter Property="Margin" Value="5,2"/>
+            <Setter Property="Padding" Value="10,5"/>
+            <Setter Property="MinWidth" Value="80"/>
+        </Style>
+    </Window.Resources>
+
+    <DockPanel>
+        <!-- Menu Strip -->
+        <Menu DockPanel.Dock="Top" Background="LightSteelBlue">
+            <MenuItem Header="Файл">
+                <MenuItem Header="Загрузить из Excel" Click="LoadFromExcel_Click"/>
+                <MenuItem Header="Загрузить из Google Table" Click="LoadFromGoogle_Click"/>
+                <Separator/>
+                <MenuItem Header="Экспорт результатов" Click="ExportResults_Click"/>
+                <Separator/>
+                <MenuItem Header="Выход" Click="Exit_Click"/>
+            </MenuItem>
+
+            <MenuItem Header="Данные">
+                <MenuItem Header="Сгенерировать случайно" Click="GenerateRandom_Click"/>
+                <MenuItem Header="Очистить матрицу" Click="ClearMatrix_Click"/>
+                <MenuItem Header="Очистить вектор B" Click="ClearVectorB_Click"/>
+            </MenuItem>
+
+            <MenuItem Header="Вычисления">
+                <MenuItem Header="Метод Гаусса" Click="GaussMethod_Click"/>
+                <MenuItem Header="Метод Жардана-Гаусса" Click="JordanGaussMethod_Click"/>
+                <MenuItem Header="Метод Крамера" Click="CramerMethod_Click"/>
+                <MenuItem Header="Все методы" Click="AllMethods_Click"/>
+            </MenuItem>
+        </Menu>
+
+        <!-- Status Bar -->
+        <StatusBar DockPanel.Dock="Bottom" Background="LightGray">
+            <StatusBarItem>
+                <TextBlock x:Name="StatusText" Text="Готов к работе"/>
+            </StatusBarItem>
+        </StatusBar>
+
+        <!-- Main Content -->
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Left Panel - Input Data -->
+            <GroupBox Grid.Column="0" Header="Входные данные" Margin="5" Padding="5">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Matrix Size Controls -->
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="5">
+                        <TextBlock Text="Размер матрицы N:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                        <TextBox x:Name="MatrixSizeTextBox" Width="50" Text="3" 
+                                TextChanged="MatrixSizeTextBox_TextChanged"/>
+                        <Button Content="Применить" Click="ApplySize_Click" 
+                               Style="{StaticResource ButtonStyle}" Margin="10,0,0,0"/>
+                    </StackPanel>
+
+                    <!-- Matrix A -->
+                    <StackPanel Grid.Row="1">
+                        <TextBlock Text="Матрица A (N×N)" Style="{StaticResource SectionHeaderStyle}"/>
+                        <DataGrid x:Name="MatrixADataGrid" Style="{StaticResource DataGridStyle}" 
+                                 Height="200" LoadingRow="MatrixDataGrid_LoadingRow"/>
+                    </StackPanel>
+
+                    <!-- Vector B -->
+                    <StackPanel Grid.Row="3">
+                        <TextBlock Text="Вектор B" Style="{StaticResource SectionHeaderStyle}"/>
+                        <DataGrid x:Name="VectorBDataGrid" Style="{StaticResource DataGridStyle}" 
+                                 Height="100" LoadingRow="VectorDataGrid_LoadingRow"/>
+                    </StackPanel>
+                </Grid>
+            </GroupBox>
+
+            <!-- Middle Panel - Controls -->
+
+            <StackPanel Grid.Column="1" Width="150" Margin="10">
+                <!-- Generation Controls -->
+                <GroupBox Header="Генерация" Margin="0,0,0,10">
+                    <StackPanel>
+                        <TextBlock Text="Минимум:" Margin="2"/>
+                        <TextBox x:Name="MinValueTextBox" Text="-10" Margin="2"/>
+                        <TextBlock Text="Максимум:" Margin="2,5,2,2"/>
+                        <TextBox x:Name="MaxValueTextBox" Text="10" Margin="2"/>
+                        <Button Content="Сгенерировать" Click="GenerateWithRange_Click" 
+                               Style="{StaticResource ButtonStyle}" Margin="2,10,2,2"/>
+                    </StackPanel>
+                </GroupBox>
+
+                <!-- Calculation Controls -->
+                <GroupBox Header="Методы решения" Margin="0,0,0,10">
+                    <StackPanel>
+                        <Button Content="Гаусс" Click="GaussMethod_Click" 
+                               Style="{StaticResource ButtonStyle}" Background="LightGreen"/>
+                        <Button Content="Жардан-Гаусс" Click="JordanGaussMethod_Click" 
+                               Style="{StaticResource ButtonStyle}" Background="LightYellow"/>
+                        <Button Content="Крамер" Click="CramerMethod_Click" 
+                               Style="{StaticResource ButtonStyle}" Background="LightCoral"/>
+                        <Button Content="Все методы" Click="AllMethods_Click" 
+                               Style="{StaticResource ButtonStyle}" Background="LightBlue" 
+                               Margin="0,10,0,0"/>
+                    </StackPanel>
+                </GroupBox>
+
+                <!-- Utility Controls -->
+                <GroupBox Header="Утилиты">
+                    <StackPanel>
+                        <Button Content="Очистить все" Click="ClearAll_Click" 
+                               Style="{StaticResource ButtonStyle}"/>
+                        <Button Content="Проверить данные" Click="ValidateData_Click" 
+                               Style="{StaticResource ButtonStyle}"/>
+                    </StackPanel>
+                </GroupBox>
+            </StackPanel>
+
+            <!-- Right Panel - Results -->
+            <GroupBox Grid.Column="2" Header="Результаты" Margin="5" Padding="5">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Method Selection and Time -->
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="5"/>
+
+                    <!-- Vector X Results -->
+                    <StackPanel Grid.Row="1">
+                        <TextBlock Text="Вектор X" Style="{StaticResource SectionHeaderStyle}"/>
+                        <DataGrid x:Name="VectorXDataGrid" Style="{StaticResource DataGridStyle}" 
+                                 Height="150" IsReadOnly="True"/>
+                    </StackPanel>
+
+                    <!-- Calculation Details -->
+                    <StackPanel Grid.Row="3">
+                        <TextBlock Text="Детали вычислений" Style="{StaticResource SectionHeaderStyle}"/>
+                        <TextBox x:Name="CalculationDetailsTextBox" 
+                                Height="150" Margin="5" IsReadOnly="True" 
+                                VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                                TextWrapping="Wrap" Background="WhiteSmoke"/>
+                    </StackPanel>
+                </Grid>
+            </GroupBox>
+        </Grid>
+    </DockPanel>
 </Window>
+
+
