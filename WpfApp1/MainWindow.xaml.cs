@@ -8,6 +8,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using WpfApp1.SLAY;
 
 namespace WpfApp1
 {
@@ -25,21 +26,25 @@ namespace WpfApp1
             Application.Current.Shutdown();
         }
 
-        private void Button_Click_Dichotomy(object sender, RoutedEventArgs e)
-        {
-            BisectionMethodWindow objBisectionMethod = new BisectionMethodWindow();
-            objBisectionMethod.Closed += BisectionWindow_Closed;
-            this.Hide();
-            objBisectionMethod.Show();
-        }
-        private void BisectionWindow_Closed(object sender, EventArgs e)
+        private void Window_Closed(object sender, EventArgs e)
         {
             this.Show(); 
         }
 
+        private void Button_Click_Dichotomy(object sender, RoutedEventArgs e)
+        {
+            BisectionMethodWindow objBisectionMethod = new BisectionMethodWindow();
+            objBisectionMethod.Closed += Window_Closed;
+            this.Hide();
+            objBisectionMethod.Show();
+        }
+
         private void Button_Click_SLAY(object sender, RoutedEventArgs e)
         {
-
+            SlayWindow objSlayMethod = new SlayWindow();
+            objSlayMethod.Closed += Window_Closed;
+            this.Hide();
+            objSlayMethod.Show();
         }
     }
 }
