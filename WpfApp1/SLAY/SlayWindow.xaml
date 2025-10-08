@@ -52,7 +52,8 @@
                 <MenuItem Header="Загрузить из Excel" Click="LoadFromExcel_Click"/>
                 <MenuItem Header="Загрузить из Google Table" Click="LoadFromGoogle_Click"/>
                 <Separator/>
-                <MenuItem Header="Экспорт результатов" Click="ExportResults_Click"/>
+                <MenuItem Header="Экспорт результатов в Excel" Click="ExportResultsExcel_Click"/>
+                <MenuItem Header="Экспорт результатов в Google Table" Click="ExportResultsGoogle_Click"/>
                 <Separator/>
                 <MenuItem Header="Выход" Click="Exit_Click"/>
             </MenuItem>

@@ -10,6 +10,11 @@ using System.IO;
 using System.Diagnostics;
 using WpfApp1.SLAY;
 using OfficeOpenXml;
+using Google.Apis.Auth.OAuth2;
+using Google.Apis.Services;
+using Google.Apis.Sheets.v4;
+using Google.Apis.Sheets.v4.Data;
+using Google.Apis.Util.Store;
 
 namespace WpfApp1.SLAY
 {
@@ -460,12 +465,221 @@ namespace WpfApp1.SLAY
             }
         }
 
-        private void LoadFromGoogle_Click(object sender, RoutedEventArgs e)
+        private async void LoadFromGoogle_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("Функция импорта из Google Tables будет реализована в будущем", "Информация");
+            try
+            {
+                // Вариант 1: Использование API ключа (проще)
+                await LoadFromGoogleSheetsSimplified();
+
+                // Вариант 2: OAuth аутентификация (сложнее, но полный доступ)
+                // await LoadFromGoogleSheetsWithOAuth();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка загрузки из Google Tables: {ex.Message}\n\nДля работы с Google Tables необходимо:\n1. Создать проект в Google Cloud Console\n2. Включить Google Sheets API\n3. Создать API ключ", "Ошибка");
+            }
         }
 
-        private void ExportResults_Click(object sender, RoutedEventArgs e)
+        private async Task LoadFromGoogleSheetsSimplified()
+        {
+            var inputDialog = new Window
+            {
+                Title = "Импорт из Google Tables",
+                Width = 500,
+                Height = 250,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                Owner = this
+            };
+
+            var stackPanel = new StackPanel { Margin = new Thickness(20) };
+
+            // Поле для ссылки
+            var linkLabel = new TextBlock { Text = "Ссылка на Google таблицу:" };
+            var linkTextBox = new TextBox { Height = 25, Margin = new Thickness(0, 5, 0, 15) };
+
+            var apiKeyLabel = new TextBlock { Text = "API ключ:" };
+            var apiKeyTextBox = new TextBox { Height = 25, Margin = new Thickness(0, 5, 0, 15) };
+
+            var buttonStack = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center };
+            var okButton = new Button { Content = "Загрузить", Width = 100, Margin = new Thickness(10) };
+            var cancelButton = new Button { Content = "Отмена", Width = 100, Margin = new Thickness(10) };
+
+            okButton.Click += async (s, e) =>
+            {
+                if (string.IsNullOrEmpty(linkTextBox.Text))
+                {
+                    MessageBox.Show("Введите ссылку на Google таблицу", "Ошибка");
+                    return;
+                }
+
+                if (string.IsNullOrEmpty(apiKeyTextBox.Text))
+                {
+                    MessageBox.Show("Введите API ключ", "Ошибка");
+                    return;
+                }
+
+                inputDialog.DialogResult = true;
+                inputDialog.Close();
+
+                await LoadDataFromGoogleSheetsByLink(linkTextBox.Text, apiKeyTextBox.Text);
+            };
+
+            cancelButton.Click += (s, e) =>
+            {
+                inputDialog.DialogResult = false;
+                inputDialog.Close();
+            };
+
+            buttonStack.Children.Add(okButton);
+            buttonStack.Children.Add(cancelButton);
+
+            stackPanel.Children.Add(linkLabel);
+            stackPanel.Children.Add(linkTextBox);
+            stackPanel.Children.Add(apiKeyLabel);
+            stackPanel.Children.Add(apiKeyTextBox);
+            stackPanel.Children.Add(buttonStack);
+
+            inputDialog.Content = stackPanel;
+
+            if (inputDialog.ShowDialog() == true)
+            {
+                UpdateStatus("Данные загружены из Google Tables");
+            }
+        }
+
+        private async Task LoadDataFromGoogleSheetsByLink(string sheetLink, string apiKey)
+        {
+            try
+            {
+                // Извлекаем ID таблицы из ссылки
+                string spreadsheetId = ExtractSheetIdFromLink(sheetLink);
+
+                if (string.IsNullOrEmpty(spreadsheetId))
+                    throw new Exception("Неверная ссылка на Google таблицу");
+
+                // Читаем весь лист (как в Excel)
+                string range = "A:Z";
+
+                var service = new SheetsService(new BaseClientService.Initializer()
+                {
+                    ApiKey = apiKey,
+                    ApplicationName = "SLAU Solver"
+                });
+
+                var request = service.Spreadsheets.Values.Get(spreadsheetId, range);
+                var response = await request.ExecuteAsync();
+
+                var values = response.Values;
+
+                if (values == null || values.Count == 0)
+                    throw new Exception("В таблице нет данных");
+
+                ProcessGoogleSheetsData(values);
+            }
+            catch (Google.GoogleApiException ex) when (ex.Error.Code == 403)
+            {
+                throw new Exception("Неверный API ключ или нет доступа к таблице");
+            }
+            catch (Google.GoogleApiException ex) when (ex.Error.Code == 404)
+            {
+                throw new Exception("Таблица не найдена. Проверьте ссылку и доступность таблицы");
+            }
+            catch (Google.GoogleApiException ex)
+            {
+                throw new Exception($"Ошибка Google API: {ex.Error.Message}");
+            }
+        }
+
+        private string ExtractSheetIdFromLink(string sheetLink)
+        {
+            if (string.IsNullOrEmpty(sheetLink))
+                return null;
+
+            var patterns = new[]
+            {
+        @"\/spreadsheets\/d\/([a-zA-Z0-9-_]+)",
+        @"\/d\/([a-zA-Z0-9-_]+)",
+        @"key=([a-zA-Z0-9-_]+)",
+        @"id=([a-zA-Z0-9-_]+)"
+    };
+
+            foreach (var pattern in patterns)
+            {
+                var match = System.Text.RegularExpressions.Regex.Match(sheetLink, pattern);
+                if (match.Success && match.Groups.Count > 1)
+                    return match.Groups[1].Value;
+            }
+
+            return null;
+        }
+
+        private void ProcessGoogleSheetsData(IList<IList<object>> values)
+        {
+            // ТОЧНО ТАКОЙ ЖЕ ФОРМАТ КАК В EXCEL - данные с строки 2
+
+            // Определяем размер по данным (игнорируем первую строку с заголовками)
+            int rows = 0;
+            for (int i = 1; i < values.Count && i <= 51; i++) // от строки 2 до 51
+            {
+                if (values[i].Count == 0 || string.IsNullOrEmpty(values[i][0]?.ToString()))
+                    break;
+                rows++;
+            }
+
+            if (rows == 0)
+                throw new Exception("Не найдены данные матрицы A");
+
+            // Предполагаем квадратную матрицу
+            matrixSize = rows;
+            MatrixSizeTextBox.Text = rows.ToString();
+
+            // Загружаем матрицу A
+            var matrixData = new List<List<double>>();
+            for (int i = 0; i < rows; i++)
+            {
+                var row = new List<double>();
+                for (int j = 0; j < rows; j++)
+                {
+                    double value = 0;
+                    if (values[i + 1].Count > j && values[i + 1][j] != null)
+                        double.TryParse(values[i + 1][j].ToString(), out value);
+                    row.Add(value);
+                }
+                matrixData.Add(row);
+            }
+
+            // Загружаем вектор B (столбец после матрицы A)
+            var vectorData = new List<List<double>>();
+            for (int i = 0; i < rows; i++)
+            {
+                double value = 0;
+                if (values[i + 1].Count > rows && values[i + 1][rows] != null)
+                    double.TryParse(values[i + 1][rows].ToString(), out value);
+                vectorData.Add(new List<double> { value });
+            }
+
+            // Обновляем интерфейс
+            InitializeDataGrids();
+            MatrixADataGrid.ItemsSource = matrixData;
+            VectorBDataGrid.ItemsSource = vectorData;
+
+            // Пытаемся загрузить вектор X если есть
+            if (values[0].Count > rows + 1 && values[0][rows + 1]?.ToString() == "Вектор X")
+            {
+                var resultData = new List<List<double>>();
+                for (int i = 0; i < rows; i++)
+                {
+                    double value = 0;
+                    if (values[i + 1].Count > rows + 1 && values[i + 1][rows + 1] != null)
+                        double.TryParse(values[i + 1][rows + 1].ToString(), out value);
+                    resultData.Add(new List<double> { value });
+                }
+                VectorXDataGrid.ItemsSource = resultData;
+            }
+        }
+
+        private void ExportResultsExcel_Click(object sender, RoutedEventArgs e)
         {
             try
             {
@@ -529,6 +743,209 @@ namespace WpfApp1.SLAY
 
                 package.SaveAs(new FileInfo(filePath));
             }
+        }
+
+        private async void ExportResultsGoogle_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                await ExportToGoogleTables();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка экспорта в Google Tables: {ex.Message}", "Ошибка");
+            }
+        }
+
+        private async Task ExportToGoogleTables()
+        {
+            var inputDialog = new Window
+            {
+                Title = "Экспорт в Google Tables",
+                Width = 500,
+                Height = 250,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                Owner = this
+            };
+
+            var stackPanel = new StackPanel { Margin = new Thickness(20) };
+
+            var linkLabel = new TextBlock { Text = "Ссылка на Google таблицу:" };
+            var linkTextBox = new TextBox { Height = 25, Margin = new Thickness(0, 5, 0, 15) };
+
+            var buttonStack = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center };
+            var exportButton = new Button { Content = "Экспортировать", Width = 120, Margin = new Thickness(10) };
+            var cancelButton = new Button { Content = "Отмена", Width = 100, Margin = new Thickness(10) };
+
+            exportButton.Click += async (s, e) =>
+            {
+                if (string.IsNullOrEmpty(linkTextBox.Text))
+                {
+                    MessageBox.Show("Введите ссылку на Google таблицу", "Ошибка");
+                    return;
+                }
+
+                // Проверяем наличие credentials.json
+                if (!File.Exists("service-account-credentials.json"))
+                {
+                    MessageBox.Show("Файл credentials.json не найден!\n\nПоместите OAuth credentials файл в папку с приложением.", "Ошибка");
+                    return;
+                }
+
+                inputDialog.DialogResult = true;
+                inputDialog.Close();
+
+                await ExportDataToGoogleSheets(linkTextBox.Text, "");
+            };
+
+            cancelButton.Click += (s, e) =>
+            {
+                inputDialog.DialogResult = false;
+                inputDialog.Close();
+            };
+
+            buttonStack.Children.Add(exportButton);
+            buttonStack.Children.Add(cancelButton);
+
+            stackPanel.Children.Add(linkLabel);
+            stackPanel.Children.Add(linkTextBox);
+            stackPanel.Children.Add(buttonStack);
+
+            inputDialog.Content = stackPanel;
+
+            if (inputDialog.ShowDialog() == true)
+            {
+                UpdateStatus("Данные экспортированы в Google Tables");
+            }
+        }
+
+        private async Task ExportDataToGoogleSheets(string sheetLink, string apiKey)
+        {
+            try
+            {
+                string spreadsheetId = ExtractSheetIdFromLink(sheetLink);
+
+                if (string.IsNullOrEmpty(spreadsheetId))
+                    throw new Exception("Неверная ссылка на Google таблицу");
+
+                // Аутентификация через Service Account
+                GoogleCredential credential;
+
+                using (var stream = new FileStream("service-account-credentials.json", FileMode.Open, FileAccess.Read))
+                {
+                    credential = GoogleCredential.FromStream(stream)
+                        .CreateScoped(SheetsService.Scope.Spreadsheets);
+                }
+
+                var service = new SheetsService(new BaseClientService.Initializer()
+                {
+                    HttpClientInitializer = credential,
+                    ApplicationName = "SLAU Solver"
+                });
+
+                // Получаем данные для экспорта
+                var matrixA = GetMatrixA();
+                var vectorB = GetVectorB();
+                var vectorX = GetVectorX();
+
+                if (matrixA == null || vectorB == null)
+                    throw new Exception("Нет данных для экспорта");
+
+                // ТОЧНО ТАКОЙ ЖЕ ФОРМАТ КАК В EXCEL
+                var values = new List<IList<object>>();
+
+                // Заголовки (строка 1)
+                var headerRow = new List<object>();
+                headerRow.Add("Матрица A");
+                // Пустые ячейки до вектора B
+                for (int i = 1; i < matrixSize; i++)
+                {
+                    headerRow.Add("");
+                }
+                headerRow.Add("Вектор B");
+
+                // Вектор X (если есть)
+                if (vectorX != null)
+                {
+                    headerRow.Add("Вектор X");
+                }
+
+                values.Add(headerRow);
+
+                // Данные матрицы A и векторов B, X (начиная со строки 2)
+                for (int i = 0; i < matrixSize; i++)
+                {
+                    var dataRow = new List<object>();
+
+                    // Матрица A
+                    for (int j = 0; j < matrixSize; j++)
+                    {
+                        dataRow.Add(matrixA[i, j]);
+                    }
+
+                    // Вектор B
+                    dataRow.Add(vectorB[i]);
+
+                    // Вектор X (если есть)
+                    if (vectorX != null && i < vectorX.Length)
+                    {
+                        dataRow.Add(Math.Round(vectorX[i], 6));
+                    }
+
+                    values.Add(dataRow);
+                }
+
+                // Определяем диапазон для записи
+                int colCount = matrixSize + 1 + (vectorX != null ? 1 : 0);
+                string range = $"A1:{GetColumnName(colCount - 1)}{values.Count}";
+
+                var valueRange = new ValueRange();
+                valueRange.Values = values;
+
+                var updateRequest = service.Spreadsheets.Values.Update(valueRange, spreadsheetId, range);
+                updateRequest.ValueInputOption = SpreadsheetsResource.ValuesResource.UpdateRequest.ValueInputOptionEnum.RAW;
+
+                var response = await updateRequest.ExecuteAsync();
+
+                MessageBox.Show($"Данные успешно экспортированы!\nОбновлено ячеек: {response.UpdatedCells}", "Экспорт завершен");
+            }
+            catch (Google.GoogleApiException ex)
+            {
+                throw new Exception($"Ошибка Google API: {ex.Error.Message}");
+            }
+        }
+
+        private double[] GetVectorX()
+        {
+            try
+            {
+                var items = VectorXDataGrid.ItemsSource as List<List<double>>;
+                if (items == null || items.Count == 0) return null;
+
+                double[] vector = new double[matrixSize];
+                for (int i = 0; i < matrixSize && i < items.Count; i++)
+                {
+                    vector[i] = items[i][0];
+                }
+                return vector;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private string GetColumnName(int columnIndex)
+        {
+            string columnName = "";
+
+            while (columnIndex >= 0)
+            {
+                columnName = (char)('A' + (columnIndex % 26)) + columnName;
+                columnIndex = (columnIndex / 26) - 1;
+            }
+
+            return columnName;
         }
 
         // Вспомогательные методы
