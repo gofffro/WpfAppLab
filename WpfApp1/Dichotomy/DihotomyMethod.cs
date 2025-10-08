@@ -1,7 +1,7 @@
 ﻿using System;
 using NCalc;
 
-namespace WpfApp1
+namespace WpfApp1.Dichotomy
 {
     public class DihotomyMethod
     {

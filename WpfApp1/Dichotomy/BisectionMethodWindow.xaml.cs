@@ -6,6 +6,7 @@ using System.Data;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using System.Windows;
+using WpfApp1.Dichotomy;
 
 namespace WpfApp1
 {

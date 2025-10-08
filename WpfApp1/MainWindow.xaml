@@ -15,7 +15,7 @@
     </Window.Background>
 
     <Grid>
-        <Button Content="Метод дихотомии" HorizontalAlignment="Left" Margin="39,44,0,0" VerticalAlignment="Top" Height="45" Width="139" Click="Button_Click" FontSize="14"/>
-        
+        <Button Content="Метод дихотомии" HorizontalAlignment="Left" Margin="39,44,0,0" VerticalAlignment="Top" Height="45" Width="139" Click="Button_Click_Dichotomy" FontSize="14"/>
+        <Button Content="Метод СЛАУ" HorizontalAlignment="Left" Margin="210,44,0,0" VerticalAlignment="Top" Height="45" Width="139" Click="Button_Click_SLAY" FontSize="14"/>
     </Grid>
 </Window>

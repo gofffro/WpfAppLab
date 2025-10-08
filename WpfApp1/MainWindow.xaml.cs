@@ -25,7 +25,7 @@ namespace WpfApp1
             Application.Current.Shutdown();
         }
 
-        private void Button_Click(object sender, RoutedEventArgs e)
+        private void Button_Click_Dichotomy(object sender, RoutedEventArgs e)
         {
             BisectionMethodWindow objBisectionMethod = new BisectionMethodWindow();
             objBisectionMethod.Closed += BisectionWindow_Closed;
@@ -35,6 +35,11 @@ namespace WpfApp1
         private void BisectionWindow_Closed(object sender, EventArgs e)
         {
             this.Show(); 
+        }
+
+        private void Button_Click_SLAY(object sender, RoutedEventArgs e)
+        {
+
         }
     }
 }
