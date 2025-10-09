@@ -82,9 +82,9 @@ namespace WpfApp1.SLAY
             var vectorData = new List<List<double>>();
             for (int i = 0; i < matrixSize; i++)
             {
-                vectorData.Add(new List<double> { 0 }); // zapolnenie nylyami
+                vectorData.Add(new List<double> { 0 }); 
             }
-            VectorBDataGrid.ItemsSource = vectorData; // Убрать Select().ToList()
+            VectorBDataGrid.ItemsSource = vectorData; 
         }
 
         private void CreateVectorX()
