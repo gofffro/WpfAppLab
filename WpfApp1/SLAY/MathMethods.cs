@@ -144,7 +144,6 @@ namespace WpfApp1.SLAY
 
             for (int k = 0; k < n; k++)
             {
-                // Поиск главного элемента
                 int maxRow = k;
                 double maxVal = Math.Abs(tempMatrix[k, k]);
                 for (int i = k + 1; i < n; i++)
@@ -158,21 +157,20 @@ namespace WpfApp1.SLAY
 
                 if (maxRow != k)
                 {
-                    // Перестановка строк
                     for (int j = 0; j < n; j++)
                     {
                         (tempMatrix[k, j], tempMatrix[maxRow, j]) = (tempMatrix[maxRow, j], tempMatrix[k, j]);
                     }
-                    det *= -1; // При перестановке строк определитель меняет знак
+                    det *= -1; 
                 }
 
-                // Если главный элемент нулевой - определитель 0
                 if (Math.Abs(tempMatrix[k, k]) < 1e-12)
+                { 
                     return 0;
+                }
 
                 det *= tempMatrix[k, k];
 
-                // Исключение
                 for (int i = k + 1; i < n; i++)
                 {
                     double factor = tempMatrix[i, k] / tempMatrix[k, k];

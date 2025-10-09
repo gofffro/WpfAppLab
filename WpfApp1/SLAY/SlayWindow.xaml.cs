@@ -44,7 +44,7 @@ namespace WpfApp1.SLAY
         private void CreateMatrixA()
         {
             MatrixADataGrid.Columns.Clear();
-            MatrixADataGrid.ItemsSource = null; // Добавить очистку
+            MatrixADataGrid.ItemsSource = null; 
 
             for (int i = 0; i < matrixSize; i++)
             {
@@ -61,17 +61,17 @@ namespace WpfApp1.SLAY
                 var row = new List<double>();
                 for (int j = 0; j < matrixSize; j++)
                 {
-                    row.Add(0); // Заполняем нулями вместо пустых массивов
+                    row.Add(0); 
                 }
                 matrixData.Add(row);
             }
-            MatrixADataGrid.ItemsSource = matrixData; // Убрать Select().ToList()
+            MatrixADataGrid.ItemsSource = matrixData; 
         }
 
         private void CreateVectorB()
         {
             VectorBDataGrid.Columns.Clear();
-            VectorBDataGrid.ItemsSource = null; // Добавить очистку
+            VectorBDataGrid.ItemsSource = null; 
 
             VectorBDataGrid.Columns.Add(new DataGridTextColumn()
             {
@@ -82,7 +82,7 @@ namespace WpfApp1.SLAY
             var vectorData = new List<List<double>>();
             for (int i = 0; i < matrixSize; i++)
             {
-                vectorData.Add(new List<double> { 0 }); // Заполняем нулями
+                vectorData.Add(new List<double> { 0 }); // zapolnenie nylyami
             }
             VectorBDataGrid.ItemsSource = vectorData; // Убрать Select().ToList()
         }
@@ -117,29 +117,28 @@ namespace WpfApp1.SLAY
 
         private async void AllMethods_Click(object sender, RoutedEventArgs e)
         {
-            if (!ValidateInputData()) return;
+            if (!ValidateInputData())
+            {
+                return;
+            }
 
             UpdateStatus("Выполняются все методы...");
             methodTimes.Clear();
 
-            // ВЫПОЛНЯЕМ ПОСЛЕДОВАТЕЛЬНО, а не параллельно
             var stopwatch = Stopwatch.StartNew();
 
-            // Метод Гаусса
             var gaussWatch = Stopwatch.StartNew();
             var gaussResult = await SolveGaussAsync();
             gaussWatch.Stop();
             methodTimes["Гаусс"] = gaussWatch.Elapsed;
             DisplayResult(gaussResult, "Гаусс");
 
-            // Метод Жордана-Гаусса  
             var jordanWatch = Stopwatch.StartNew();
             var jordanResult = await SolveJordanGaussAsync();
             jordanWatch.Stop();
             methodTimes["Жардан-Гаусс"] = jordanWatch.Elapsed;
             DisplayResult(jordanResult, "Жардан-Гаусс");
 
-            // Метод Крамера
             var cramerWatch = Stopwatch.StartNew();
             var cramerResult = await SolveCramerAsync();
             cramerWatch.Stop();
@@ -154,7 +153,10 @@ namespace WpfApp1.SLAY
 
         private async Task SolveWithMethod(string methodName, Func<Task<double[]>> method)
         {
-            if (!ValidateInputData()) return;
+            if (!ValidateInputData())
+            {
+                return;
+            }
 
             UpdateStatus($"Выполняется метод {methodName}...");
 
@@ -167,7 +169,6 @@ namespace WpfApp1.SLAY
             UpdateStatus($"Метод {methodName} завершен");
         }
 
-        // Валидация данных
         private bool ValidateInputData()
         {
             try
@@ -181,7 +182,6 @@ namespace WpfApp1.SLAY
                     return false;
                 }
 
-                // Проверка на вырожденность матрицы
                 if (Math.Abs(solver.Determinant(matrixA)) < 1e-10)
                 {
                     MessageBox.Show("Матрица вырождена (определитель близок к нулю)", "Ошибка");
@@ -197,7 +197,6 @@ namespace WpfApp1.SLAY
             }
         }
 
-        // Методы решения СЛАУ
         public async Task<double[]> SolveGaussAsync()
         {
             return await Task.Run(() =>
@@ -259,7 +258,10 @@ namespace WpfApp1.SLAY
             try
             {
                 var items = VectorBDataGrid.ItemsSource as List<List<double>>;
-                if (items == null) return null;
+                if (items == null)
+                { 
+                    return null;
+                }
 
                 double[] vector = new double[matrixSize];
                 for (int i = 0; i < matrixSize; i++)
@@ -288,7 +290,6 @@ namespace WpfApp1.SLAY
                                            $"Результат:\n{string.Join("\n", result.Select((x, i) => $"x{i + 1} = {x:F6}"))}";
         }
 
-        // Генерация случайных данных
         private void GenerateRandom_Click(object sender, RoutedEventArgs e)
         {
             GenerateWithRange_Click(sender, e);
@@ -329,7 +330,6 @@ namespace WpfApp1.SLAY
             }
         }
 
-        // Обработчики изменения размера матрицы
         private void MatrixSizeTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             if (int.TryParse(MatrixSizeTextBox.Text, out int size) && size >= 2 && size <= 50)
@@ -353,7 +353,6 @@ namespace WpfApp1.SLAY
             }
         }
 
-        // Очистка данных
         private void ClearAll_Click(object sender, RoutedEventArgs e)
         {
             InitializeDataGrids();
@@ -399,27 +398,31 @@ namespace WpfApp1.SLAY
             using (var package = new ExcelPackage(new FileInfo(filePath)))
             {
                 if (package.Workbook.Worksheets.Count == 0)
+                { 
                     throw new Exception("В файле нет листов");
+                }
 
                 var worksheet = package.Workbook.Worksheets[0];
 
-                // Ищем данные матрицы A (начинаются со строки 2, столбца 1)
                 int rows = 0;
-                for (int i = 2; i <= 51; i++) // от строки 2 до 51
+                for (int i = 2; i <= 51; i++)
                 {
                     if (worksheet.Cells[i, 1].Value == null || string.IsNullOrEmpty(worksheet.Cells[i, 1].Value.ToString()))
+                    { 
                         break;
+                    }
                     rows++;
                 }
 
                 if (rows == 0)
+                {
                     throw new Exception("Не найдены данные матрицы A");
+                }
 
-                // Предполагаем, что матрица квадратная
+
                 matrixSize = rows;
                 MatrixSizeTextBox.Text = rows.ToString();
 
-                // Загружаем матрицу A
                 var matrixData = new List<List<double>>();
                 for (int i = 0; i < rows; i++)
                 {
@@ -428,28 +431,29 @@ namespace WpfApp1.SLAY
                     {
                         double value = 0;
                         if (worksheet.Cells[i + 2, j + 1].Value != null)
+                        { 
                             double.TryParse(worksheet.Cells[i + 2, j + 1].Value.ToString(), out value);
+                        }
                         row.Add(value);
                     }
                     matrixData.Add(row);
                 }
 
-                // Загружаем вектор B (столбец после матрицы A)
                 var vectorData = new List<List<double>>();
                 for (int i = 0; i < rows; i++)
                 {
                     double value = 0;
                     if (worksheet.Cells[i + 2, rows + 1].Value != null)
+                    { 
                         double.TryParse(worksheet.Cells[i + 2, rows + 1].Value.ToString(), out value);
+                    }
                     vectorData.Add(new List<double> { value });
                 }
 
-                // Обновляем интерфейс
                 InitializeDataGrids();
                 MatrixADataGrid.ItemsSource = matrixData;
                 VectorBDataGrid.ItemsSource = vectorData;
 
-                // Пытаемся загрузить вектор X если есть
                 if (worksheet.Cells[1, rows + 2]?.Value?.ToString() == "Вектор X")
                 {
                     var resultData = new List<List<double>>();
@@ -469,11 +473,7 @@ namespace WpfApp1.SLAY
         {
             try
             {
-                // Вариант 1: Использование API ключа (проще)
                 await LoadFromGoogleSheetsSimplified();
-
-                // Вариант 2: OAuth аутентификация (сложнее, но полный доступ)
-                // await LoadFromGoogleSheetsWithOAuth();
             }
             catch (Exception ex)
             {
@@ -494,7 +494,6 @@ namespace WpfApp1.SLAY
 
             var stackPanel = new StackPanel { Margin = new Thickness(20) };
 
-            // Поле для ссылки
             var linkLabel = new TextBlock { Text = "Ссылка на Google таблицу:" };
             var linkTextBox = new TextBox { Height = 25, Margin = new Thickness(0, 5, 0, 15) };
 
@@ -552,14 +551,14 @@ namespace WpfApp1.SLAY
         {
             try
             {
-                // Извлекаем ID таблицы из ссылки
                 string spreadsheetId = ExtractSheetIdFromLink(sheetLink);
 
                 if (string.IsNullOrEmpty(spreadsheetId))
+                { 
                     throw new Exception("Неверная ссылка на Google таблицу");
+                }
 
-                // Читаем весь лист (как в Excel)
-                string range = "A:Z";
+                string range = "A:AZ";
 
                 var service = new SheetsService(new BaseClientService.Initializer()
                 {
@@ -573,7 +572,9 @@ namespace WpfApp1.SLAY
                 var values = response.Values;
 
                 if (values == null || values.Count == 0)
+                { 
                     throw new Exception("В таблице нет данных");
+                }
 
                 ProcessGoogleSheetsData(values);
             }
@@ -608,7 +609,9 @@ namespace WpfApp1.SLAY
             {
                 var match = System.Text.RegularExpressions.Regex.Match(sheetLink, pattern);
                 if (match.Success && match.Groups.Count > 1)
+                {
                     return match.Groups[1].Value;
+                }
             }
 
             return null;
@@ -616,25 +619,24 @@ namespace WpfApp1.SLAY
 
         private void ProcessGoogleSheetsData(IList<IList<object>> values)
         {
-            // ТОЧНО ТАКОЙ ЖЕ ФОРМАТ КАК В EXCEL - данные с строки 2
-
-            // Определяем размер по данным (игнорируем первую строку с заголовками)
             int rows = 0;
-            for (int i = 1; i < values.Count && i <= 51; i++) // от строки 2 до 51
+            for (int i = 1; i < values.Count && i <= 51; i++)
             {
                 if (values[i].Count == 0 || string.IsNullOrEmpty(values[i][0]?.ToString()))
+                { 
                     break;
+                }
                 rows++;
             }
 
             if (rows == 0)
+            {
                 throw new Exception("Не найдены данные матрицы A");
+            }
 
-            // Предполагаем квадратную матрицу
             matrixSize = rows;
             MatrixSizeTextBox.Text = rows.ToString();
 
-            // Загружаем матрицу A
             var matrixData = new List<List<double>>();
             for (int i = 0; i < rows; i++)
             {
@@ -643,28 +645,29 @@ namespace WpfApp1.SLAY
                 {
                     double value = 0;
                     if (values[i + 1].Count > j && values[i + 1][j] != null)
+                    { 
                         double.TryParse(values[i + 1][j].ToString(), out value);
+                    }
                     row.Add(value);
                 }
                 matrixData.Add(row);
             }
 
-            // Загружаем вектор B (столбец после матрицы A)
             var vectorData = new List<List<double>>();
             for (int i = 0; i < rows; i++)
             {
                 double value = 0;
                 if (values[i + 1].Count > rows && values[i + 1][rows] != null)
+                { 
                     double.TryParse(values[i + 1][rows].ToString(), out value);
+                }
                 vectorData.Add(new List<double> { value });
             }
 
-            // Обновляем интерфейс
             InitializeDataGrids();
             MatrixADataGrid.ItemsSource = matrixData;
             VectorBDataGrid.ItemsSource = vectorData;
 
-            // Пытаемся загрузить вектор X если есть
             if (values[0].Count > rows + 1 && values[0][rows + 1]?.ToString() == "Вектор X")
             {
                 var resultData = new List<List<double>>();
@@ -672,7 +675,9 @@ namespace WpfApp1.SLAY
                 {
                     double value = 0;
                     if (values[i + 1].Count > rows + 1 && values[i + 1][rows + 1] != null)
+                    { 
                         double.TryParse(values[i + 1][rows + 1].ToString(), out value);
+                    }
                     resultData.Add(new List<double> { value });
                 }
                 VectorXDataGrid.ItemsSource = resultData;
@@ -706,11 +711,9 @@ namespace WpfApp1.SLAY
             {
                 var worksheet = package.Workbook.Worksheets.Add("СЛАУ Данные");
 
-                // Заголовки
                 worksheet.Cells[1, 1].Value = "Матрица A";
                 worksheet.Cells[1, matrixSize + 1].Value = "Вектор B";
 
-                // Матрица A
                 var matrixA = GetMatrixA();
                 for (int i = 0; i < matrixSize; i++)
                 {
@@ -720,14 +723,12 @@ namespace WpfApp1.SLAY
                     }
                 }
 
-                // Вектор B
                 var vectorB = GetVectorB();
                 for (int i = 0; i < matrixSize; i++)
                 {
                     worksheet.Cells[i + 2, matrixSize + 1].Value = vectorB[i];
                 }
 
-                // Вектор X (если есть результаты) - сохраняем в отдельном столбце
                 if (VectorXDataGrid.ItemsSource != null)
                 {
                     worksheet.Cells[1, matrixSize + 2].Value = "Вектор X";
@@ -738,7 +739,6 @@ namespace WpfApp1.SLAY
                     }
                 }
 
-                // Автоподбор ширины столбцов
                 worksheet.Cells[worksheet.Dimension.Address].AutoFitColumns();
 
                 package.SaveAs(new FileInfo(filePath));
@@ -785,7 +785,6 @@ namespace WpfApp1.SLAY
                     return;
                 }
 
-                // Проверяем наличие credentials.json
                 if (!File.Exists("service-account-credentials.json"))
                 {
                     MessageBox.Show("Файл credentials.json не найден!\n\nПоместите OAuth credentials файл в папку с приложением.", "Ошибка");
@@ -826,9 +825,10 @@ namespace WpfApp1.SLAY
                 string spreadsheetId = ExtractSheetIdFromLink(sheetLink);
 
                 if (string.IsNullOrEmpty(spreadsheetId))
+                { 
                     throw new Exception("Неверная ссылка на Google таблицу");
+                }
 
-                // Аутентификация через Service Account
                 GoogleCredential credential;
 
                 using (var stream = new FileStream("service-account-credentials.json", FileMode.Open, FileAccess.Read))
@@ -843,28 +843,27 @@ namespace WpfApp1.SLAY
                     ApplicationName = "SLAU Solver"
                 });
 
-                // Получаем данные для экспорта
                 var matrixA = GetMatrixA();
                 var vectorB = GetVectorB();
                 var vectorX = GetVectorX();
 
                 if (matrixA == null || vectorB == null)
+                { 
                     throw new Exception("Нет данных для экспорта");
+                }
 
-                // ТОЧНО ТАКОЙ ЖЕ ФОРМАТ КАК В EXCEL
+
                 var values = new List<IList<object>>();
 
-                // Заголовки (строка 1)
                 var headerRow = new List<object>();
                 headerRow.Add("Матрица A");
-                // Пустые ячейки до вектора B
+
                 for (int i = 1; i < matrixSize; i++)
                 {
                     headerRow.Add("");
                 }
                 headerRow.Add("Вектор B");
 
-                // Вектор X (если есть)
                 if (vectorX != null)
                 {
                     headerRow.Add("Вектор X");
@@ -872,21 +871,17 @@ namespace WpfApp1.SLAY
 
                 values.Add(headerRow);
 
-                // Данные матрицы A и векторов B, X (начиная со строки 2)
                 for (int i = 0; i < matrixSize; i++)
                 {
                     var dataRow = new List<object>();
 
-                    // Матрица A
                     for (int j = 0; j < matrixSize; j++)
                     {
                         dataRow.Add(matrixA[i, j]);
                     }
 
-                    // Вектор B
                     dataRow.Add(vectorB[i]);
 
-                    // Вектор X (если есть)
                     if (vectorX != null && i < vectorX.Length)
                     {
                         dataRow.Add(Math.Round(vectorX[i], 6));
@@ -895,7 +890,6 @@ namespace WpfApp1.SLAY
                     values.Add(dataRow);
                 }
 
-                // Определяем диапазон для записи
                 int colCount = matrixSize + 1 + (vectorX != null ? 1 : 0);
                 string range = $"A1:{GetColumnName(colCount - 1)}{values.Count}";
 
@@ -920,7 +914,10 @@ namespace WpfApp1.SLAY
             try
             {
                 var items = VectorXDataGrid.ItemsSource as List<List<double>>;
-                if (items == null || items.Count == 0) return null;
+                if (items == null || items.Count == 0)
+                { 
+                    return null;
+                }
 
                 double[] vector = new double[matrixSize];
                 for (int i = 0; i < matrixSize && i < items.Count; i++)
@@ -948,7 +945,6 @@ namespace WpfApp1.SLAY
             return columnName;
         }
 
-        // Вспомогательные методы
         private void UpdateStatus(string message)
         {
             StatusText.Text = message;
