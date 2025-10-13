@@ -96,10 +96,31 @@ namespace WpfApp1
 
                 // Используем метод золотого сечения для поиска минимума
                 GoldenSectionMethod method = new GoldenSectionMethod(function);
+
+                // ПРОВЕРКА УНИМОДАЛЬНОСТИ ПЕРЕД ВЫЧИСЛЕНИЕМ
+                bool isUnimodal = method.CheckUnimodality(a, b, 10); // 10 точек для точности
+
+                if (!isUnimodal)
+                {
+                    var result = MessageBox.Show("Функция может иметь несколько экстремумов на заданном интервале.\n" +
+                                               "Метод золотого сечения найдет только один из них.\n\n" +
+                                               "Продолжить вычисления?",
+                                               "Предупреждение",
+                                               MessageBoxButton.YesNo,
+                                               MessageBoxImage.Warning);
+
+                    if (result == MessageBoxResult.No)
+                    {
+                        return;
+                    }
+                }
+
                 double minimumX = method.FindMinimum(a, b, epsilon);
                 double minimumY = method.CalculateFunction(minimumX);
 
-                lblResult.Text = $"Найден минимум в точке: x = {minimumX:F6}";
+                // ДОБАВЛЯЕМ ИНФОРМАЦИЮ О РЕЗУЛЬТАТЕ
+                string modalityInfo = isUnimodal ? "Функция унимодальна" : "Функция имеет несколько экстремумов";
+                lblResult.Text = $"Найден минимум в точке: x = {minimumX:F6}\n({modalityInfo})";
                 lblFunctionValue.Text = $"f(min) = {minimumY:F6}";
                 lblIterations.Text = $"Количество итераций: {method.IterationsCount}";
 
