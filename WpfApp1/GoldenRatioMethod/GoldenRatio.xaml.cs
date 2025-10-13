@@ -49,6 +49,22 @@ namespace WpfApp1
 
                 function = PreprocessFunction(function);
 
+                // Автоматическая коррекция интервала для проблемных функций
+                if (function.Contains("/x") && a <= 0 && b >= 0)
+                {
+                    double newA = a <= 0 ? 0.001 : a;
+                    double newB = b <= 0 ? -0.001 : b;
+
+                    if (a <= 0 && b > 0)
+                    {
+                        // Разделяем интервал на две части, избегая x=0
+                        MessageBox.Show("Функция содержит деление на x. Исключаю точку x=0 из интервала.",
+                                      "Корректировка интервала", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        a = 0.001;
+                        txtA.Text = "0.001";
+                    }
+                }
+
                 if (function.ToLower().Contains("log") || function.ToLower().Contains("log10"))
                 {
                     if (a <= 0)
@@ -69,7 +85,6 @@ namespace WpfApp1
                                   MessageBoxImage.Warning);
                     return;
                 }
-
                 else if (function.Contains("**"))
                 {
                     MessageBox.Show("Пожалуйста, используйте функцию pow(x,y) вместо оператора **. \n\nПример: x**2 -> pow(x,2)",
@@ -109,16 +124,45 @@ namespace WpfApp1
                 try
                 {
                     double y = method.CalculateFunction(x);
-                    FunctionValues.Add(new ObservablePoint(x, y));
+
+                    // Проверяем, что значение не бесконечное и не слишком большое для графика
+                    if (!double.IsInfinity(y) && !double.IsNaN(y) && Math.Abs(y) < 1e10)
+                    {
+                        FunctionValues.Add(new ObservablePoint(x, y));
+                    }
+                    else
+                    {
+                        // Пропускаем точки с бесконечными или слишком большими значениями
+                        // Можно добавить точку с ограниченным значением для визуализации разрыва
+                        if (y > 0 && y >= double.MaxValue / 2)
+                        {
+                            FunctionValues.Add(new ObservablePoint(x, 1e10)); // Большое положительное значение
+                        }
+                        else if (y < 0 && y <= -double.MaxValue / 2)
+                        {
+                            FunctionValues.Add(new ObservablePoint(x, -1e10)); // Большое отрицательное значение
+                        }
+                    }
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // Пропускаем точки, где функция не определена
+                    // Логируем ошибку, но не крашим программу
+                    System.Diagnostics.Debug.WriteLine($"Ошибка при вычислении точки x={x}: {ex.Message}");
                 }
             }
 
-            // Добавляем точку минимума на график
-            MinimumPoint.Add(new ObservablePoint(minX, minY));
+            // Добавляем точку минимума на график, только если она валидная
+            try
+            {
+                if (!double.IsInfinity(minY) && !double.IsNaN(minY) && Math.Abs(minY) < 1e10)
+                {
+                    MinimumPoint.Add(new ObservablePoint(minX, minY));
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Ошибка при добавлении точки минимума: {ex.Message}");
+            }
         }
 
         private bool ValidateInput()
@@ -181,8 +225,8 @@ namespace WpfApp1
 
         private void Clear_Click(object sender, RoutedEventArgs e)
         {
-            txtA.Text = "-10";
-            txtB.Text = "10";
+            txtA.Text = "0.1"; // Избегаем 0
+            txtB.Text = "2";
             txtEpsilon.Text = "0,0001";
             txtFunction.Text = "pow(x,2)";
             lblResult.Text = "Результат: ";
