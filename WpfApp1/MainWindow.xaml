@@ -15,7 +15,12 @@
     </Window.Background>
 
     <Grid>
-        <Button Content="Метод дихотомии" HorizontalAlignment="Left" Margin="39,44,0,0" VerticalAlignment="Top" Height="45" Width="139" Click="Button_Click_Dichotomy" FontSize="14"/>
-        <Button Content="Метод СЛАУ" HorizontalAlignment="Left" Margin="210,44,0,0" VerticalAlignment="Top" Height="45" Width="139" Click="Button_Click_SLAY" FontSize="14"/>
+        <Button Content="Метод дихотомии" HorizontalAlignment="Left" Margin="20,44,0,0" VerticalAlignment="Top" Height="45" Width="200
+                " Click="Button_Click_Dichotomy" FontSize="14"/>
+        <Button Content="Метод СЛАУ" HorizontalAlignment="Left" Margin="20,120,0,0" VerticalAlignment="Top" Height="46" Width="200
+                " Click="Button_Click_SLAY" FontSize="14"/>
+        <Button Content="Метод золотого сечения" HorizontalAlignment="Left" Margin="275,44,0,0" VerticalAlignment="Top" Height="45" Width="200
+                
+                " Click="Button_Click_Golden" FontSize="14"/>
     </Grid>
 </Window>

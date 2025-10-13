@@ -28,7 +28,7 @@ namespace WpfApp1
 
         private void Window_Closed(object sender, EventArgs e)
         {
-            this.Show(); 
+            this.Show();
         }
 
         private void Button_Click_Dichotomy(object sender, RoutedEventArgs e)
@@ -42,6 +42,14 @@ namespace WpfApp1
         private void Button_Click_SLAY(object sender, RoutedEventArgs e)
         {
             SlayWindow objSlayMethod = new SlayWindow();
+            objSlayMethod.Closed += Window_Closed;
+            this.Hide();
+            objSlayMethod.Show();
+        }
+
+        private void Button_Click_Golden(object sender, RoutedEventArgs e)
+        {
+            GoldenRatio objSlayMethod = new GoldenRatio();
             objSlayMethod.Closed += Window_Closed;
             this.Hide();
             objSlayMethod.Show();
