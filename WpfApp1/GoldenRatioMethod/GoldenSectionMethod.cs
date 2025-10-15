@@ -6,20 +6,19 @@ namespace WpfApp1
     public class GoldenSectionMethod
     {
         private readonly Expression _expression;
-        private readonly double _goldenRatio = (Math.Sqrt(5) - 1) / 2; // ≈ 0.618
+        private readonly double _goldenRatio = (Math.Sqrt(5) - 1) / 2; 
 
         public int IterationsCount { get; private set; }
 
         public GoldenSectionMethod(string function)
         {
-            // Используем NCalc для парсинга выражения
             _expression = new Expression(function.ToLower(), EvaluateOptions.IgnoreCase);
             
-            // Добавляем константы
+
             _expression.Parameters["pi"] = Math.PI;
             _expression.Parameters["e"] = Math.E;
 
-            // Регистрируем обработчик функций
+
             _expression.EvaluateFunction += EvaluateFunction;
         }
 
@@ -27,13 +26,10 @@ namespace WpfApp1
         {
             try
             {
-                // Устанавливаем параметр x
                 _expression.Parameters["x"] = x;
 
-                // Вычисляем значение функции
                 var result = _expression.Evaluate();
 
-                // Преобразуем результат в double
                 if (result is double doubleResult)
                 {
                     return doubleResult;
@@ -182,7 +178,6 @@ namespace WpfApp1
             }
         }
 
-        // Метод для проверки унимодальности функции на интервале
         public bool CheckUnimodality(double a, double b, int testPoints = 5)
         {
             if (testPoints < 3) testPoints = 3;
@@ -198,7 +193,6 @@ namespace WpfApp1
 
                 if (i > 1)
                 {
-                    // Проверяем, есть ли смена монотонности
                     double diff1 = currentValue - prevValue;
                     double diff2 = prevValue - CalculateFunction(a + (i - 2) * step);
 
@@ -206,7 +200,6 @@ namespace WpfApp1
                     {
                         if (foundExtremum)
                         {
-                            // Найдено более одного экстремума - функция не унимодальна
                             return false;
                         }
                         foundExtremum = true;
