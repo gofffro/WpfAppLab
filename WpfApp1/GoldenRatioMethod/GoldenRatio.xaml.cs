@@ -49,7 +49,6 @@ namespace WpfApp1
 
                 function = PreprocessFunction(function);
 
-                // Автоматическая коррекция интервала для проблемных функций
                 if (function.Contains("/x") && a <= 0 && b >= 0)
                 {
                     double newA = a <= 0 ? 0.001 : a;
@@ -57,7 +56,6 @@ namespace WpfApp1
 
                     if (a <= 0 && b > 0)
                     {
-                        // Разделяем интервал на две части, избегая x=0
                         MessageBox.Show("Функция содержит деление на x. Исключаю точку x=0 из интервала.",
                                       "Корректировка интервала", MessageBoxButton.OK, MessageBoxImage.Warning);
                         a = 0.001;
@@ -94,11 +92,10 @@ namespace WpfApp1
                     return;
                 }
 
-                // Используем метод золотого сечения для поиска минимума
                 GoldenSectionMethod method = new GoldenSectionMethod(function);
 
-                // ПРОВЕРКА УНИМОДАЛЬНОСТИ ПЕРЕД ВЫЧИСЛЕНИЕМ
-                bool isUnimodal = method.CheckUnimodality(a, b, 10); // 10 точек для точности
+
+                bool isUnimodal = method.CheckUnimodality(a, b, 10); 
 
                 if (!isUnimodal)
                 {
@@ -118,7 +115,6 @@ namespace WpfApp1
                 double minimumX = method.FindMinimum(a, b, epsilon);
                 double minimumY = method.CalculateFunction(minimumX);
 
-                // ДОБАВЛЯЕМ ИНФОРМАЦИЮ О РЕЗУЛЬТАТЕ
                 string modalityInfo = isUnimodal ? "Функция унимодальна" : "Функция имеет несколько экстремумов";
                 lblResult.Text = $"Найден минимум в точке: x = {minimumX:F6}\n({modalityInfo})";
                 lblFunctionValue.Text = $"f(min) = {minimumY:F6}";
@@ -146,33 +142,30 @@ namespace WpfApp1
                 {
                     double y = method.CalculateFunction(x);
 
-                    // Проверяем, что значение не бесконечное и не слишком большое для графика
+
                     if (!double.IsInfinity(y) && !double.IsNaN(y) && Math.Abs(y) < 1e10)
                     {
                         FunctionValues.Add(new ObservablePoint(x, y));
                     }
                     else
                     {
-                        // Пропускаем точки с бесконечными или слишком большими значениями
-                        // Можно добавить точку с ограниченным значением для визуализации разрыва
+
                         if (y > 0 && y >= double.MaxValue / 2)
                         {
-                            FunctionValues.Add(new ObservablePoint(x, 1e10)); // Большое положительное значение
+                            FunctionValues.Add(new ObservablePoint(x, 1e10)); 
                         }
                         else if (y < 0 && y <= -double.MaxValue / 2)
                         {
-                            FunctionValues.Add(new ObservablePoint(x, -1e10)); // Большое отрицательное значение
+                            FunctionValues.Add(new ObservablePoint(x, -1e10)); 
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    // Логируем ошибку, но не крашим программу
                     System.Diagnostics.Debug.WriteLine($"Ошибка при вычислении точки x={x}: {ex.Message}");
                 }
             }
 
-            // Добавляем точку минимума на график, только если она валидная
             try
             {
                 if (!double.IsInfinity(minY) && !double.IsNaN(minY) && Math.Abs(minY) < 1e10)
@@ -246,7 +239,7 @@ namespace WpfApp1
 
         private void Clear_Click(object sender, RoutedEventArgs e)
         {
-            txtA.Text = "0.1"; // Избегаем 0
+            txtA.Text = "0.1"; 
             txtB.Text = "2";
             txtEpsilon.Text = "0,0001";
             txtFunction.Text = "pow(x,2)";
@@ -310,13 +303,11 @@ namespace WpfApp1
 
             string result = function;
 
-            // заменяем запятые в функциях на специальные маркеры
             result = Regex.Replace(result, @"pow\(([^,]+),([^)]+)\)", "pow($1|SEPARATOR|$2)");
             result = Regex.Replace(result, @"log\(([^,]+),([^)]+)\)", "log($1|SEPARATOR|$2)");
 
             result = result.Replace(",", ".");
 
-            // возвращаем запятые в функциях обратно
             result = result.Replace("|SEPARATOR|", ",");
 
             return result;
