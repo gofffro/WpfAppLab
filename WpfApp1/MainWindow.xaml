@@ -22,5 +22,8 @@
         <Button Content="Метод золотого сечения" HorizontalAlignment="Left" Margin="275,44,0,0" VerticalAlignment="Top" Height="45" Width="200
                 
                 " Click="Button_Click_Golden" FontSize="14"/>
+        <Button Content="Метод Ньютона" HorizontalAlignment="Left" Margin="275,120,0,0" 
+        VerticalAlignment="Top" Height="46" Width="200"
+        Click="Button_Click_Newton" FontSize="14"/>
     </Grid>
 </Window>

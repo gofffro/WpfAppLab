@@ -54,5 +54,13 @@ namespace WpfApp1
             this.Hide();
             objSlayMethod.Show();
         }
+
+        private void Button_Click_Newton(object sender, RoutedEventArgs e)
+        {
+            NewtonMethodWindow objNewtonMethod = new NewtonMethodWindow();
+            objNewtonMethod.Closed += Window_Closed;
+            this.Hide();
+            objNewtonMethod.Show();
+        }
     }
 }
