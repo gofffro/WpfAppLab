@@ -82,6 +82,7 @@ namespace WpfApp1
 
                 _isStepByStepMode = true;
                 miNextStep.IsEnabled = true;
+                btnNextStep.IsEnabled = true; // Включаем кнопку в панели
                 btnStepByStep.IsEnabled = false;
                 btnCalculate.IsEnabled = false;
 
@@ -128,6 +129,7 @@ namespace WpfApp1
         {
             _isStepByStepMode = false;
             miNextStep.IsEnabled = false;
+            btnNextStep.IsEnabled = false; // Отключаем кнопку в панели
             btnStepByStep.IsEnabled = true;
             btnCalculate.IsEnabled = true;
 
@@ -140,6 +142,18 @@ namespace WpfApp1
             // Добавляем финальную точку минимума
             MinimumPoint.Clear();
             MinimumPoint.Add(new ObservablePoint(result, functionValue));
+        }
+
+        private void ResetStepMode()
+        {
+            _isStepByStepMode = false;
+            miNextStep.IsEnabled = false;
+            btnNextStep.IsEnabled = false; // Отключаем кнопку в панели
+            btnStepByStep.IsEnabled = true;
+            btnCalculate.IsEnabled = true;
+            _iterationHistory.Clear();
+            StepPoints.Clear();
+            lblStepInfo.Text = "";
         }
 
         private void PlotStepByStep(double currentX)
@@ -196,17 +210,6 @@ namespace WpfApp1
                     // Пропускаем точки с ошибками вычисления
                 }
             }
-        }
-
-        private void ResetStepMode()
-        {
-            _isStepByStepMode = false;
-            miNextStep.IsEnabled = false;
-            btnStepByStep.IsEnabled = true;
-            btnCalculate.IsEnabled = true;
-            _iterationHistory.Clear();
-            StepPoints.Clear();
-            lblStepInfo.Text = "";
         }
 
         private void ResetSteps_Click(object sender, RoutedEventArgs e)

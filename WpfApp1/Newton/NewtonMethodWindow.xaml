@@ -69,11 +69,14 @@
                 <Label Grid.Row="3" Grid.Column="0" Content="Макс. итераций:" Margin="5"/>
                 <TextBox Grid.Row="3" Grid.Column="1" Name="txtMaxIterations" Margin="5" Text="100"/>
 
+                <!-- Заменяем этот StackPanel -->
                 <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal" Margin="5">
                     <Button Name="btnCalculate" Content="Автоматически" 
-                            Margin="5,0" Width="120" Click="Calculate_Click"/>
+            Margin="5,0" Width="120" Click="Calculate_Click"/>
                     <Button Name="btnStepByStep" Content="Пошагово" 
-                            Margin="5,0" Width="80" Click="StartStepByStep_Click"/>
+            Margin="5,0" Width="80" Click="StartStepByStep_Click"/>
+                    <Button Name="btnNextStep" Content="Следующий шаг" 
+            Margin="5,0" Width="120" Click="NextStep_Click" IsEnabled="False"/>
                 </StackPanel>
 
                 <TextBlock Grid.Row="5" Grid.Column="1" Name="lblStepInfo" Margin="5" 

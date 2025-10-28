@@ -22,10 +22,24 @@ namespace WpfApp1
         {
             try
             {
+                // Защита от особых точек
+                if (Math.Abs(x) < 1e-15)
+                {
+                    // Для x=0 возвращаем большое число, но не бесконечность
+                    return 1e10;
+                }
+
                 _expression.Parameters["x"] = x;
                 var result = _expression.Evaluate();
 
-                if (result is double doubleResult) return doubleResult;
+                if (result is double doubleResult)
+                {
+                    if (double.IsInfinity(doubleResult) || double.IsNaN(doubleResult))
+                    {
+                        return 1e10; // Возвращаем большое число вместо бесконечности
+                    }
+                    return doubleResult;
+                }
                 if (result is int intResult) return intResult;
                 if (result is decimal decimalResult) return (double)decimalResult;
 
@@ -33,20 +47,81 @@ namespace WpfApp1
             }
             catch (Exception ex)
             {
-                throw new ArgumentException($"Ошибка вычисления функции в точке x={x}: {ex.Message}");
+                // Возвращаем большое число при ошибке вычисления
+                return 1e10;
             }
         }
 
-        // Численное вычисление первой производной
         public double CalculateFirstDerivative(double x, double h = 1e-5)
         {
-            return (CalculateFunction(x + h) - CalculateFunction(x - h)) / (2 * h);
+            try
+            {
+                // Защита от вычисления в особых точках
+                if (Math.Abs(x) < h)
+                {
+                    h = Math.Abs(x) * 0.1 + 1e-10;
+                }
+
+                double f_plus = CalculateFunction(x + h);
+                double f_minus = CalculateFunction(x - h);
+
+                return (f_plus - f_minus) / (2 * h);
+            }
+            catch
+            {
+                return 0; // Возвращаем 0 при ошибке
+            }
         }
 
-        // Численное вычисление второй производной
         public double CalculateSecondDerivative(double x, double h = 1e-5)
         {
-            return (CalculateFunction(x + h) - 2 * CalculateFunction(x) + CalculateFunction(x - h)) / (h * h);
+            try
+            {
+                // Защита от вычисления в особых точках
+                if (Math.Abs(x) < h)
+                {
+                    h = Math.Abs(x) * 0.1 + 1e-10;
+                }
+
+                double f_plus = CalculateFunction(x + h);
+                double f_curr = CalculateFunction(x);
+                double f_minus = CalculateFunction(x - h);
+
+                return (f_plus - 2 * f_curr + f_minus) / (h * h);
+            }
+            catch
+            {
+                return 1; // Возвращаем положительное число при ошибке
+            }
+        }
+
+        public double NextIteration(double currentX)
+        {
+            try
+            {
+                double firstDerivative = CalculateFirstDerivative(currentX);
+                double secondDerivative = CalculateSecondDerivative(currentX);
+
+                // Защита от деления на ноль и отрицательной второй производной
+                if (Math.Abs(secondDerivative) < 1e-15)
+                {
+                    // Если вторая производная почти нулевая, делаем небольшой шаг
+                    return currentX - Math.Sign(firstDerivative) * 0.1;
+                }
+
+                if (secondDerivative < 0)
+                {
+                    // Если вторая производная отрицательная, идем против градиента
+                    return currentX - firstDerivative * 0.1;
+                }
+
+                return currentX - firstDerivative / secondDerivative;
+            }
+            catch (Exception ex)
+            {
+                // При любой ошибке возвращаем текущую точку (останавливаем метод)
+                return currentX;
+            }
         }
 
         public double FindMinimum(double x0, double epsilon, int maxIterations)
@@ -94,18 +169,6 @@ namespace WpfApp1
             return x;
         }
 
-        public double NextIteration(double currentX)
-        {
-            double firstDerivative = CalculateFirstDerivative(currentX);
-            double secondDerivative = CalculateSecondDerivative(currentX);
-
-            if (Math.Abs(secondDerivative) < 1e-15)
-            {
-                throw new InvalidOperationException("Вторая производная близка к нулю.");
-            }
-
-            return currentX - firstDerivative / secondDerivative;
-        }
 
         private void EvaluateFunction(string name, FunctionArgs args)
         {
