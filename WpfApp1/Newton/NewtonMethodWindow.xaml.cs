@@ -182,16 +182,36 @@ namespace WpfApp1
         private void PlotFunction(double a, double b)
         {
             FunctionValues.Clear();
-            int pointsCount = 200;
+
+            // Ширина «зоны разрыва» вокруг 0 и ограничение по Y для стабильного масштаба
+            double gap = Math.Max(1e-6, 0.001 * (b - a));
+            double YMAX = 1e6; // можно подобрать под задачу
+
+            int pointsCount = 400;
             double step = (b - a) / pointsCount;
 
             for (double x = a; x <= b; x += step)
             {
+                // Если близко к разрыву — вставляем «пробел» (NaN) и идём дальше
+                if (Math.Abs(x) < gap)
+                {
+                    FunctionValues.Add(new LiveCharts.Defaults.ObservablePoint(x, double.NaN));
+                    continue;
+                }
+
                 double y = _newtonMethod.CalculateFunction(x);
-                if (!double.IsInfinity(y) && !double.IsNaN(y))
-                    FunctionValues.Add(new LiveCharts.Defaults.ObservablePoint(x, y));
+
+                // Отфильтровываем «заглушку» 1e10 и любые непригодные величины
+                if (double.IsNaN(y) || double.IsInfinity(y) || Math.Abs(y) > YMAX || Math.Abs(y - 1e10) < 1)
+                {
+                    FunctionValues.Add(new LiveCharts.Defaults.ObservablePoint(x, double.NaN));
+                    continue;
+                }
+
+                FunctionValues.Add(new LiveCharts.Defaults.ObservablePoint(x, y));
             }
         }
+
 
         private void ResetSteps_Click(object sender, RoutedEventArgs e)
         {
