@@ -54,38 +54,39 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
                 <Label Grid.Row="0" Grid.Column="0" Content="Функция f(x):" Margin="5"/>
-                <TextBox Grid.Row="0" Grid.Column="1" Name="txtFunction" Margin="5" 
-                         Text="x*x - 2*x + 1" ToolTip="Введите математическое выражение функции"/>
+                <TextBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="3" Name="txtFunction" Margin="5"
+             Text="x*x - 2*x + 1" ToolTip="Введите математическое выражение функции"/>
 
-                <Label Grid.Row="1" Grid.Column="0" Content="Начальная точка x0:" Margin="5"/>
-                <TextBox Grid.Row="1" Grid.Column="1" Name="txtX0" Margin="5" Text="0"/>
+                <Label Grid.Row="1" Grid.Column="0" Content="Левая граница a:" Margin="5"/>
+                <TextBox Grid.Row="1" Grid.Column="1" Name="txtA" Margin="5" Text="-1"/>
+
+                <Label Grid.Row="1" Grid.Column="2" Content="Правая граница b:" Margin="5"/>
+                <TextBox Grid.Row="1" Grid.Column="3" Name="txtB" Margin="5" Text="3"/>
 
                 <Label Grid.Row="2" Grid.Column="0" Content="Точность ε:" Margin="5"/>
                 <TextBox Grid.Row="2" Grid.Column="1" Name="txtEpsilon" Margin="5" Text="0,001"/>
 
-                <Label Grid.Row="3" Grid.Column="0" Content="Макс. итераций:" Margin="5"/>
-                <TextBox Grid.Row="3" Grid.Column="1" Name="txtMaxIterations" Margin="5" Text="100"/>
+                <Label Grid.Row="2" Grid.Column="2" Content="Макс. итераций:" Margin="5"/>
+                <TextBox Grid.Row="2" Grid.Column="3" Name="txtMaxIterations" Margin="5" Text="100"/>
 
-                <!-- Заменяем этот StackPanel -->
-                <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal" Margin="5">
-                    <Button Name="btnCalculate" Content="Автоматически" 
-            Margin="5,0" Width="120" Click="Calculate_Click"/>
-                    <Button Name="btnStepByStep" Content="Пошагово" 
-            Margin="5,0" Width="80" Click="StartStepByStep_Click"/>
-                    <Button Name="btnNextStep" Content="Следующий шаг" 
-            Margin="5,0" Width="120" Click="NextStep_Click" IsEnabled="False"/>
+                <StackPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="4" Orientation="Horizontal" Margin="5">
+                    <Button Name="btnCalculate" Content="Автоматически" Margin="5,0" Width="140" Click="Calculate_Click"/>
+                    <Button Name="btnStepByStep" Content="Пошагово" Margin="5,0" Width="100" Click="StartStepByStep_Click"/>
+                    <Button Name="btnNextStep" Content="Следующий шаг" Margin="5,0" Width="140" Click="NextStep_Click" IsEnabled="False"/>
                 </StackPanel>
 
-                <TextBlock Grid.Row="5" Grid.Column="1" Name="lblStepInfo" Margin="5" 
-                          FontWeight="Bold" Foreground="DarkBlue"/>
+                <TextBlock Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="4" Name="lblStepInfo" Margin="5"
+               FontWeight="Bold" Foreground="DarkBlue"/>
             </Grid>
         </GroupBox>
 
         <!-- Results and Chart -->
-        <GroupBox Grid.Row="2" Header="Результаты" Margin="10" Padding="10">
+        <GroupBox Grid.Row="1" Header="Результаты" Margin="10,227,10,10" Padding="10">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>

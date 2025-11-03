@@ -42,21 +42,22 @@ namespace WpfApp1
 
                 ResetStepMode();
 
-                double x0 = double.Parse(txtX0.Text.Replace(",", "."), CultureInfo.InvariantCulture);
+                double a = double.Parse(txtA.Text.Replace(",", "."), CultureInfo.InvariantCulture);
+                double b = double.Parse(txtB.Text.Replace(",", "."), CultureInfo.InvariantCulture);
                 double epsilon = double.Parse(txtEpsilon.Text.Replace(",", "."), CultureInfo.InvariantCulture);
                 int maxIterations = int.Parse(txtMaxIterations.Text);
                 string function = PreprocessFunction(txtFunction.Text);
 
                 _newtonMethod = new NewtonMethod(function);
 
-                double result = _newtonMethod.FindMinimum(x0, epsilon, maxIterations);
+                double result = _newtonMethod.FindMinimum(a, b, epsilon, maxIterations);
                 double functionValue = _newtonMethod.CalculateFunction(result);
 
                 lblResult.Text = $"Найден минимум в точке: x = {result:F6}";
                 lblFunctionValue.Text = $"f(min) = {functionValue:F6}";
                 lblIterations.Text = $"Количество итераций: {_newtonMethod.IterationsCount}";
 
-                PlotGraphWithMinimum(result, functionValue, x0);
+                PlotGraphWithMinimumInterval(a, b, result, functionValue);
             }
             catch (Exception ex)
             {
@@ -71,22 +72,24 @@ namespace WpfApp1
                 if (!ValidateInput())
                     return;
 
-                double x0 = double.Parse(txtX0.Text.Replace(",", "."), CultureInfo.InvariantCulture);
-                double epsilon = double.Parse(txtEpsilon.Text.Replace(",", "."), CultureInfo.InvariantCulture);
-                int maxIterations = int.Parse(txtMaxIterations.Text);
+                double a = double.Parse(txtA.Text.Replace(",", "."), CultureInfo.InvariantCulture);
+                double b = double.Parse(txtB.Text.Replace(",", "."), CultureInfo.InvariantCulture);
                 string function = PreprocessFunction(txtFunction.Text);
 
                 _newtonMethod = new NewtonMethod(function);
                 _iterationHistory.Clear();
+
+                double x0 = 0.5 * (a + b); // старт из середины интервала
                 _iterationHistory.Add(x0);
 
                 _isStepByStepMode = true;
                 miNextStep.IsEnabled = true;
-                btnNextStep.IsEnabled = true; // Включаем кнопку в панели
+                btnNextStep.IsEnabled = true;
                 btnStepByStep.IsEnabled = false;
                 btnCalculate.IsEnabled = false;
 
                 lblStepInfo.Text = $"Шаг 1: x₀ = {x0:F6}";
+                PlotFunction(a, b); // сразу рисуем всю функцию на [a,b]
                 PlotStepByStep(x0);
             }
             catch (Exception ex)
@@ -97,15 +100,16 @@ namespace WpfApp1
 
         private void NextStep_Click(object sender, RoutedEventArgs e)
         {
-            if (!_isStepByStepMode || _newtonMethod == null)
-                return;
+            if (!_isStepByStepMode || _newtonMethod == null) return;
 
             try
             {
                 double epsilon = double.Parse(txtEpsilon.Text.Replace(",", "."), CultureInfo.InvariantCulture);
-                double currentX = _iterationHistory[_iterationHistory.Count - 1];
+                double a = double.Parse(txtA.Text.Replace(",", "."), CultureInfo.InvariantCulture);
+                double b = double.Parse(txtB.Text.Replace(",", "."), CultureInfo.InvariantCulture);
 
-                double nextX = _newtonMethod.NextIteration(currentX);
+                double currentX = _iterationHistory[_iterationHistory.Count - 1];
+                double nextX = _newtonMethod.NextIterationInterval(currentX, a, b);
                 _iterationHistory.Add(nextX);
 
                 double delta = Math.Abs(nextX - currentX);
@@ -129,7 +133,7 @@ namespace WpfApp1
         {
             _isStepByStepMode = false;
             miNextStep.IsEnabled = false;
-            btnNextStep.IsEnabled = false; // Отключаем кнопку в панели
+            btnNextStep.IsEnabled = false;
             btnStepByStep.IsEnabled = true;
             btnCalculate.IsEnabled = true;
 
@@ -139,10 +143,10 @@ namespace WpfApp1
             lblIterations.Text = $"Количество итераций: {_iterationHistory.Count - 1}";
             lblStepInfo.Text = "Вычисление завершено";
 
-            // Добавляем финальную точку минимума
             MinimumPoint.Clear();
-            MinimumPoint.Add(new ObservablePoint(result, functionValue));
+            MinimumPoint.Add(new LiveCharts.Defaults.ObservablePoint(result, functionValue));
         }
+
 
         private void ResetStepMode()
         {
@@ -162,53 +166,30 @@ namespace WpfApp1
             foreach (double x in _iterationHistory)
             {
                 double y = _newtonMethod.CalculateFunction(x);
-                StepPoints.Add(new ObservablePoint(x, y));
+                StepPoints.Add(new LiveCharts.Defaults.ObservablePoint(x, y));
             }
-
-            // Обновляем график функции вокруг текущих точек
-            double minX = double.MaxValue, maxX = double.MinValue;
-            foreach (double x in _iterationHistory)
-            {
-                minX = Math.Min(minX, x);
-                maxX = Math.Max(maxX, x);
-            }
-
-            double range = Math.Max(Math.Abs(maxX - minX), 1.0);
-            PlotFunction(minX - range * 0.5, maxX + range * 0.5);
         }
 
-        private void PlotGraphWithMinimum(double minX, double minY, double x0)
+
+        private void PlotGraphWithMinimumInterval(double a, double b, double xMin, double yMin)
         {
-            double range = Math.Max(Math.Abs(minX - x0), 1.0);
-            PlotFunction(minX - range, minX + range);
-
+            PlotFunction(a, b);
             MinimumPoint.Clear();
-            MinimumPoint.Add(new ObservablePoint(minX, minY));
-
+            MinimumPoint.Add(new LiveCharts.Defaults.ObservablePoint(xMin, yMin));
             StepPoints.Clear();
         }
 
         private void PlotFunction(double a, double b)
         {
             FunctionValues.Clear();
-
-            int pointsCount = 100;
+            int pointsCount = 200;
             double step = (b - a) / pointsCount;
 
             for (double x = a; x <= b; x += step)
             {
-                try
-                {
-                    double y = _newtonMethod.CalculateFunction(x);
-                    if (!double.IsInfinity(y) && !double.IsNaN(y))
-                    {
-                        FunctionValues.Add(new ObservablePoint(x, y));
-                    }
-                }
-                catch
-                {
-                    // Пропускаем точки с ошибками вычисления
-                }
+                double y = _newtonMethod.CalculateFunction(x);
+                if (!double.IsInfinity(y) && !double.IsNaN(y))
+                    FunctionValues.Add(new LiveCharts.Defaults.ObservablePoint(x, y));
             }
         }
 
@@ -220,18 +201,28 @@ namespace WpfApp1
 
         private bool ValidateInput()
         {
-            if (string.IsNullOrWhiteSpace(txtX0.Text) || string.IsNullOrWhiteSpace(txtEpsilon.Text) ||
-                string.IsNullOrWhiteSpace(txtMaxIterations.Text) || string.IsNullOrWhiteSpace(txtFunction.Text))
+            if (string.IsNullOrWhiteSpace(txtA.Text) ||
+                string.IsNullOrWhiteSpace(txtB.Text) ||
+                string.IsNullOrWhiteSpace(txtEpsilon.Text) ||
+                string.IsNullOrWhiteSpace(txtMaxIterations.Text) ||
+                string.IsNullOrWhiteSpace(txtFunction.Text))
             {
                 MessageBox.Show("Все поля должны быть заполнены!", "Ошибка ввода", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return false;
             }
 
-            if (!double.TryParse(txtX0.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out double x0) ||
-                !double.TryParse(txtEpsilon.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out double epsilon) ||
+            if (!double.TryParse(txtA.Text.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out double a) ||
+                !double.TryParse(txtB.Text.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out double b) ||
+                !double.TryParse(txtEpsilon.Text.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out double epsilon) ||
                 !int.TryParse(txtMaxIterations.Text, out int maxIterations))
             {
                 MessageBox.Show("Некорректные числовые значения!", "Ошибка ввода", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+
+            if (a >= b)
+            {
+                MessageBox.Show("Должно быть a < b!", "Ошибка ввода", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return false;
             }
 
@@ -241,9 +232,9 @@ namespace WpfApp1
                 return false;
             }
 
-            if (maxIterations <= 0 || maxIterations > 1000)
+            if (maxIterations <= 0 || maxIterations > 2000)
             {
-                MessageBox.Show("Максимальное количество итераций должно быть от 1 до 1000!", "Ошибка ввода", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Максимальное количество итераций должно быть от 1 до 2000!", "Ошибка ввода", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return false;
             }
 
@@ -252,19 +243,23 @@ namespace WpfApp1
 
         private void Clear_Click(object sender, RoutedEventArgs e)
         {
-            txtX0.Text = "0";
+            txtA.Text = "-1";
+            txtB.Text = "3";
             txtEpsilon.Text = "0,0001";
             txtMaxIterations.Text = "100";
             txtFunction.Text = "x*x - 2*x + 1";
+
             lblResult.Text = "Результат: ";
             lblFunctionValue.Text = "f(min) = ";
             lblIterations.Text = "Количество итераций: ";
             lblStepInfo.Text = "";
+
             FunctionValues.Clear();
             MinimumPoint.Clear();
             StepPoints.Clear();
             ResetStepMode();
         }
+
 
         private void Exit_Click(object sender, RoutedEventArgs e)
         {
