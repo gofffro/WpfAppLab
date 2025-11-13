@@ -128,7 +128,7 @@ namespace WpfApp1
                 prev = x;
                 x = xNext;
 
-                // защита от «выстрела»
+ 
                 if (double.IsNaN(x) || double.IsInfinity(x))
                 {
                     newtonOk = false; break;
