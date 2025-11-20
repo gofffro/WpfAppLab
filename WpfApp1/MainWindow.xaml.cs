@@ -8,6 +8,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using WpfApp1.OlimpSort;
 using WpfApp1.SLAY;
 
 namespace WpfApp1
@@ -49,10 +50,10 @@ namespace WpfApp1
 
         private void Button_Click_Golden(object sender, RoutedEventArgs e)
         {
-            GoldenRatio objSlayMethod = new GoldenRatio();
-            objSlayMethod.Closed += Window_Closed;
+            GoldenRatio objGoldenMethod = new GoldenRatio();
+            objGoldenMethod.Closed += Window_Closed;
             this.Hide();
-            objSlayMethod.Show();
+            objGoldenMethod.Show();
         }
 
         private void Button_Click_Newton(object sender, RoutedEventArgs e)
@@ -61,6 +62,14 @@ namespace WpfApp1
             objNewtonMethod.Closed += Window_Closed;
             this.Hide();
             objNewtonMethod.Show();
+        }
+
+        private void Button_Click_OlimpSort(object sender, RoutedEventArgs e)
+        {
+            OlimpSortWindow objOlimpSort = new OlimpSortWindow();
+            objOlimpSort.Closed += Window_Closed;
+            this.Hide();
+            objOlimpSort.Show();
         }
     }
 }
