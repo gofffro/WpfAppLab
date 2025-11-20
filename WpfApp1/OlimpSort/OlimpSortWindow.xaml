@@ -69,9 +69,8 @@
 
             <MenuItem Header="Сортировка">
                 <MenuItem Header="Запуск сортировки" Click="StartSorting_Click"/>
-                <MenuItem Header="Остановить визуализацию" Click="StopVisualization_Click"/>
                 <Separator/>
-                <MenuItem Header="Сбросить цвета" Click="ResetColors_Click"/>
+                <MenuItem Header="Сбросить" Click="ResetColors_Click"/>
             </MenuItem>
         </Menu>
 
