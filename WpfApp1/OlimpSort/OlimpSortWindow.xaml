@@ -145,6 +145,8 @@
                                Style="{StaticResource ButtonStyle}" Background="LightGreen" FontWeight="Bold"/>
                         <Button Content="Сбросить" Click="ResetColors_Click" 
                                Style="{StaticResource ButtonStyle}" Background="LightYellow"/>
+                        <Button Content="Настройки итераций" Click="ConfigureIterations_Click" 
+       Style="{StaticResource ButtonStyle}" Background="LightBlue"/>
                     </StackPanel>
                 </Grid>
             </GroupBox>

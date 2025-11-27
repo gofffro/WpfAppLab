@@ -12,6 +12,7 @@ using OfficeOpenXml;
 using Google.Apis.Sheets.v4;
 using Google.Apis.Sheets.v4.Data;
 using Google.Apis.Services;
+using System.Threading.Tasks;
 
 namespace WpfApp1.OlimpSort
 {
@@ -26,6 +27,10 @@ namespace WpfApp1.OlimpSort
         private List<int> originalArray = new List<int>();
         private List<VisualizationElement> visualizationElements = new List<VisualizationElement>();
         private bool isVisualizationRunning = false;
+
+        // Новые поля для управления итерациями
+        private int maxIterations = 10000;
+        private Dictionary<string, int> algorithmMaxIterations = new Dictionary<string, int>();
 
         public OlimpSortWindow()
         {
@@ -102,7 +107,7 @@ namespace WpfApp1.OlimpSort
             VisualizationContainer.ItemsSource = visualizationElements.ToList();
         }
 
-        // Data management methods - ОДИН метод GetInputData
+        // Data management methods
         private List<int> GetInputData()
         {
             try
@@ -160,365 +165,6 @@ namespace WpfApp1.OlimpSort
             ResultDataGrid.ItemsSource = dataList;
         }
 
-        // Sorting algorithms implementation
-        public class SortAlgorithm
-        {
-            public string Name { get; set; }
-            public Func<List<int>, bool, (List<int>, List<ColorInfo>, int)> SortFunction { get; set; }
-            public List<int> CurrentData { get; set; }
-            public bool IsAscending { get; set; }
-            public Stopwatch Timer { get; set; } = new Stopwatch();
-        }
-
-        public class ColorInfo
-        {
-            public Brush Color { get; set; }
-            public int Index { get; set; }
-        }
-
-        public class VisualizationElement
-        {
-            public int Value { get; set; }
-            public double Height { get; set; }
-            public Brush Color { get; set; }
-        }
-
-        // Исправленные алгоритмы сортировки с счетчиком итераций
-        private (List<int>, List<ColorInfo>, int) BubbleSort(List<int> data, bool ascending)
-        {
-            var arr = data.ToList();
-            var colors = Enumerable.Range(0, arr.Count).Select(i => new ColorInfo
-            {
-                Color = Brushes.LightBlue,
-                Index = i
-            }).ToList();
-
-            bool swapped;
-            int iterations = 0;
-
-            for (int i = 0; i < arr.Count - 1; i++)
-            {
-                swapped = false;
-                for (int j = 0; j < arr.Count - i - 1; j++)
-                {
-                    iterations++;
-
-                    // Highlight compared elements
-                    colors[j].Color = Brushes.Red;
-                    colors[j + 1].Color = Brushes.Red;
-
-                    bool shouldSwap = ascending ? arr[j] > arr[j + 1] : arr[j] < arr[j + 1];
-
-                    if (shouldSwap)
-                    {
-                        (arr[j], arr[j + 1]) = (arr[j + 1], arr[j]);
-                        swapped = true;
-
-                        // Highlight swapped elements
-                        colors[j].Color = Brushes.Green;
-                        colors[j + 1].Color = Brushes.Green;
-                    }
-                    else
-                    {
-                        colors[j].Color = Brushes.Orange;
-                        colors[j + 1].Color = Brushes.Orange;
-                    }
-
-                    // Reset other colors
-                    for (int k = 0; k < colors.Count; k++)
-                    {
-                        if (k != j && k != j + 1)
-                        {
-                            colors[k].Color = k < arr.Count - i ? Brushes.LightBlue : Brushes.LightGreen;
-                        }
-                    }
-                }
-
-                if (!swapped) break;
-            }
-
-            // Final state - all sorted
-            for (int i = 0; i < colors.Count; i++)
-            {
-                colors[i].Color = Brushes.LightGreen;
-            }
-            return (arr, colors, iterations);
-        }
-
-        private (List<int>, List<ColorInfo>, int) InsertionSort(List<int> data, bool ascending)
-        {
-            var arr = data.ToList();
-            var colors = Enumerable.Range(0, arr.Count).Select(i => new ColorInfo
-            {
-                Color = Brushes.LightBlue,
-                Index = i
-            }).ToList();
-
-            int iterations = 0;
-
-            for (int i = 1; i < arr.Count; i++)
-            {
-                int key = arr[i];
-                int j = i - 1;
-
-                colors[i].Color = Brushes.Red;
-
-                while (j >= 0 && (ascending ? arr[j] > key : arr[j] < key))
-                {
-                    iterations++;
-                    colors[j].Color = Brushes.Orange;
-                    arr[j + 1] = arr[j];
-                    j--;
-
-                    // Update colors during shift
-                    for (int k = 0; k <= i; k++)
-                    {
-                        if (k == j + 1) colors[k].Color = Brushes.Green;
-                        else if (k <= i) colors[k].Color = Brushes.LightBlue;
-                    }
-                }
-                iterations++; // Count the last comparison that breaks the loop
-                arr[j + 1] = key;
-
-                // Update colors for sorted portion
-                for (int k = 0; k <= i; k++)
-                {
-                    colors[k].Color = Brushes.LightGreen;
-                }
-            }
-
-            // Final state
-            for (int i = 0; i < colors.Count; i++)
-            {
-                colors[i].Color = Brushes.LightGreen;
-            }
-            return (arr, colors, iterations);
-        }
-
-        private (List<int>, List<ColorInfo>, int) ShakerSort(List<int> data, bool ascending)
-        {
-            var arr = data.ToList();
-            var colors = Enumerable.Range(0, arr.Count).Select(i => new ColorInfo
-            {
-                Color = Brushes.LightBlue,
-                Index = i
-            }).ToList();
-
-            bool swapped = true;
-            int start = 0;
-            int end = arr.Count - 1;
-            int iterations = 0;
-
-            while (swapped)
-            {
-                swapped = false;
-
-                // Forward pass
-                for (int i = start; i < end; i++)
-                {
-                    iterations++;
-                    colors[i].Color = Brushes.Red;
-                    colors[i + 1].Color = Brushes.Red;
-
-                    bool shouldSwap = ascending ? arr[i] > arr[i + 1] : arr[i] < arr[i + 1];
-
-                    if (shouldSwap)
-                    {
-                        (arr[i], arr[i + 1]) = (arr[i + 1], arr[i]);
-                        swapped = true;
-
-                        colors[i].Color = Brushes.Green;
-                        colors[i + 1].Color = Brushes.Green;
-                    }
-
-                    // Reset colors for non-active elements
-                    for (int k = 0; k < colors.Count; k++)
-                    {
-                        if (k != i && k != i + 1)
-                        {
-                            if (k < start || k > end)
-                                colors[k].Color = Brushes.LightGreen;
-                            else
-                                colors[k].Color = Brushes.LightBlue;
-                        }
-                    }
-                }
-
-                if (!swapped) break;
-
-                end--;
-
-                // Backward pass
-                for (int i = end - 1; i >= start; i--)
-                {
-                    iterations++;
-                    colors[i].Color = Brushes.Red;
-                    colors[i + 1].Color = Brushes.Red;
-
-                    bool shouldSwap = ascending ? arr[i] > arr[i + 1] : arr[i] < arr[i + 1];
-
-                    if (shouldSwap)
-                    {
-                        (arr[i], arr[i + 1]) = (arr[i + 1], arr[i]);
-                        swapped = true;
-
-                        colors[i].Color = Brushes.Green;
-                        colors[i + 1].Color = Brushes.Green;
-                    }
-
-                    // Reset colors for non-active elements
-                    for (int k = 0; k < colors.Count; k++)
-                    {
-                        if (k != i && k != i + 1)
-                        {
-                            if (k < start || k > end)
-                                colors[k].Color = Brushes.LightGreen;
-                            else
-                                colors[k].Color = Brushes.LightBlue;
-                        }
-                    }
-                }
-
-                start++;
-            }
-
-            // Final state
-            for (int i = 0; i < colors.Count; i++)
-            {
-                colors[i].Color = Brushes.LightGreen;
-            }
-            return (arr, colors, iterations);
-        }
-
-        private (List<int>, List<ColorInfo>, int) QuickSort(List<int> data, bool ascending)
-        {
-            var arr = data.ToList();
-            var colors = Enumerable.Range(0, arr.Count).Select(i => new ColorInfo
-            {
-                Color = Brushes.LightBlue,
-                Index = i
-            }).ToList();
-
-            int iterations = 0;
-            QuickSortRecursive(arr, 0, arr.Count - 1, ascending, colors, ref iterations);
-
-            // Final state
-            for (int i = 0; i < colors.Count; i++)
-            {
-                colors[i].Color = Brushes.LightGreen;
-            }
-            return (arr, colors, iterations);
-        }
-
-        private void QuickSortRecursive(List<int> arr, int low, int high, bool ascending, List<ColorInfo> colors, ref int iterations)
-        {
-            if (low < high)
-            {
-                int pi = Partition(arr, low, high, ascending, colors, ref iterations);
-                QuickSortRecursive(arr, low, pi - 1, ascending, colors, ref iterations);
-                QuickSortRecursive(arr, pi + 1, high, ascending, colors, ref iterations);
-            }
-        }
-
-        private int Partition(List<int> arr, int low, int high, bool ascending, List<ColorInfo> colors, ref int iterations)
-        {
-            int pivot = arr[high];
-
-            // Color pivot
-            colors[high].Color = Brushes.Purple;
-
-            int i = low - 1;
-
-            for (int j = low; j < high; j++)
-            {
-                iterations++;
-                colors[j].Color = Brushes.Red;
-
-                bool shouldSwap = ascending ? arr[j] <= pivot : arr[j] >= pivot;
-
-                if (shouldSwap)
-                {
-                    i++;
-                    (arr[i], arr[j]) = (arr[j], arr[i]);
-
-                    // Color swapped elements
-                    colors[i].Color = Brushes.Green;
-                    if (i != j) colors[j].Color = Brushes.Orange;
-                }
-
-                // Reset colors for non-active elements
-                for (int k = low; k <= high; k++)
-                {
-                    if (k != j && k != i && k != high && colors[k].Color != Brushes.Green)
-                    {
-                        colors[k].Color = Brushes.LightBlue;
-                    }
-                }
-            }
-
-            (arr[i + 1], arr[high]) = (arr[high], arr[i + 1]);
-
-            // Color the final pivot position
-            colors[i + 1].Color = Brushes.LightGreen;
-            colors[high].Color = Brushes.LightBlue;
-
-            return i + 1;
-        }
-
-        private (List<int>, List<ColorInfo>, int) BogoSort(List<int> data, bool ascending)
-        {
-            var arr = data.ToList();
-            var colors = Enumerable.Range(0, arr.Count).Select(i => new ColorInfo
-            {
-                Color = Brushes.LightBlue,
-                Index = i
-            }).ToList();
-
-            int attempts = 0;
-            int maxAttempts = 10000; // Safety limit
-            int iterations = 0;
-
-            while (!IsSorted(arr, ascending) && attempts < maxAttempts)
-            {
-                iterations++;
-                Shuffle(arr);
-                attempts++;
-
-                // Color based on sorted status
-                for (int i = 0; i < colors.Count; i++)
-                {
-                    colors[i].Color = Brushes.Orange; // Shuffling color
-                }
-            }
-
-            // Final coloring
-            for (int i = 0; i < colors.Count; i++)
-            {
-                colors[i].Color = IsSorted(arr, ascending) ? Brushes.LightGreen : Brushes.Red;
-            }
-
-            return (arr, colors, iterations);
-        }
-
-        private bool IsSorted(List<int> arr, bool ascending)
-        {
-            for (int i = 0; i < arr.Count - 1; i++)
-            {
-                if (ascending && arr[i] > arr[i + 1]) return false;
-                if (!ascending && arr[i] < arr[i + 1]) return false;
-            }
-            return true;
-        }
-
-        private void Shuffle(List<int> arr)
-        {
-            for (int i = 0; i < arr.Count; i++)
-            {
-                int j = random.Next(i, arr.Count);
-                (arr[i], arr[j]) = (arr[j], arr[i]);
-            }
-        }
-
         // Исправленный метод запуска сортировки
         private void StartSorting_Click(object sender, RoutedEventArgs e)
         {
@@ -548,7 +194,7 @@ namespace WpfApp1.OlimpSort
                 activeAlgorithms.Add(new SortAlgorithm
                 {
                     Name = "Пузырьковая",
-                    SortFunction = BubbleSort,
+                    SortFunction = SortingAlgorithms.BubbleSort,
                     CurrentData = inputData.ToList(),
                     IsAscending = isAscending
                 });
@@ -559,7 +205,7 @@ namespace WpfApp1.OlimpSort
                 activeAlgorithms.Add(new SortAlgorithm
                 {
                     Name = "Вставками",
-                    SortFunction = InsertionSort,
+                    SortFunction = SortingAlgorithms.InsertionSort,
                     CurrentData = inputData.ToList(),
                     IsAscending = isAscending
                 });
@@ -570,7 +216,7 @@ namespace WpfApp1.OlimpSort
                 activeAlgorithms.Add(new SortAlgorithm
                 {
                     Name = "Шейкерная",
-                    SortFunction = ShakerSort,
+                    SortFunction = SortingAlgorithms.ShakerSort,
                     CurrentData = inputData.ToList(),
                     IsAscending = isAscending
                 });
@@ -581,7 +227,7 @@ namespace WpfApp1.OlimpSort
                 activeAlgorithms.Add(new SortAlgorithm
                 {
                     Name = "Быстрая",
-                    SortFunction = QuickSort,
+                    SortFunction = SortingAlgorithms.QuickSort,
                     CurrentData = inputData.ToList(),
                     IsAscending = isAscending
                 });
@@ -598,7 +244,7 @@ namespace WpfApp1.OlimpSort
                     activeAlgorithms.Add(new SortAlgorithm
                     {
                         Name = "BOGO",
-                        SortFunction = BogoSort,
+                        SortFunction = SortingAlgorithms.BogoSort,
                         CurrentData = inputData.ToList(),
                         IsAscending = isAscending
                     });
@@ -624,8 +270,34 @@ namespace WpfApp1.OlimpSort
             {
                 try
                 {
+                    // Определяем максимальное количество итераций для алгоритма
+                    int algoMaxIterations = 0;
+                    string algoKey = algorithm.Name switch
+                    {
+                        "Пузырьковая" => "BubbleSort",
+                        "Вставками" => "InsertionSort",
+                        "Шейкерная" => "ShakerSort",
+                        "Быстрая" => "QuickSort",
+                        "BOGO" => "BogoSort",
+                        _ => algorithm.Name
+                    };
+
+                    if (algorithmMaxIterations.ContainsKey(algoKey) && algorithmMaxIterations[algoKey] > 0)
+                    {
+                        algoMaxIterations = algorithmMaxIterations[algoKey];
+                    }
+                    else
+                    {
+                        algoMaxIterations = maxIterations;
+                    }
+
+                    var parameters = new SortingAlgorithms.SortParameters
+                    {
+                        MaxIterations = algoMaxIterations
+                    };
+
                     var stopwatch = Stopwatch.StartNew();
-                    var result = algorithm.SortFunction(algorithm.CurrentData, algorithm.IsAscending);
+                    var result = algorithm.SortFunction(algorithm.CurrentData, algorithm.IsAscending, parameters);
                     stopwatch.Stop();
 
                     algorithmTimes[algorithm.Name] = stopwatch.Elapsed;
@@ -634,6 +306,10 @@ namespace WpfApp1.OlimpSort
                     timingResults.AppendLine($"{algorithm.Name}:");
                     timingResults.AppendLine($"  Время: {stopwatch.Elapsed.TotalMilliseconds:F4} мс");
                     timingResults.AppendLine($"  Итераций: {result.Item3}");
+                    if (result.Item3 >= algoMaxIterations && algoMaxIterations > 0)
+                    {
+                        timingResults.AppendLine($"  ДОСТИГНУТ ЛИМИТ ИТЕРАЦИЙ ({algoMaxIterations})");
+                    }
                     timingResults.AppendLine();
 
                     // Display first algorithm's visualization
@@ -664,6 +340,144 @@ namespace WpfApp1.OlimpSort
             }
 
             UpdateStatus("Сортировка завершена");
+        }
+
+        // Новый метод для настройки параметров итераций
+        private void ConfigureIterations_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new Window
+            {
+                Title = "Настройки итераций",
+                Width = 400,
+                Height = 350,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                Owner = this
+            };
+
+            var stackPanel = new StackPanel { Margin = new Thickness(20, 20, 20, 20) };
+
+            // Общие настройки
+            var generalLabel = new TextBlock
+            {
+                Text = "Общее максимальное количество итераций:",
+                FontWeight = FontWeights.Bold,
+                Margin = new Thickness(0, 0, 0, 5)
+            };
+            var generalTextBox = new TextBox
+            {
+                Text = maxIterations.ToString(),
+                Height = 25,
+                Margin = new Thickness(0, 0, 0, 15)
+            };
+
+            // Настройки для каждого алгоритма
+            var algorithmsLabel = new TextBlock
+            {
+                Text = "Настройки для алгоритмов (0 = без лимита):",
+                FontWeight = FontWeights.Bold,
+                Margin = new Thickness(0, 10, 0, 10)
+            };
+
+            var algorithmsStack = new StackPanel();
+
+            var algorithms = new Dictionary<string, string>
+            {
+                { "Пузырьковая", "BubbleSort" },
+                { "Вставками", "InsertionSort" },
+                { "Шейкерная", "ShakerSort" },
+                { "Быстрая", "QuickSort" },
+                { "BOGO", "BogoSort" }
+            };
+
+            foreach (var algo in algorithms)
+            {
+                var algoStack = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    Margin = new Thickness(0, 0, 0, 5)
+                };
+                var label = new TextBlock
+                {
+                    Text = algo.Key + ":",
+                    Width = 100,
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                var textBox = new TextBox
+                {
+                    Text = algorithmMaxIterations.ContainsKey(algo.Value) ? algorithmMaxIterations[algo.Value].ToString() : "0",
+                    Width = 80,
+                    Height = 20,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Tag = algo.Value
+                };
+
+                algoStack.Children.Add(label);
+                algoStack.Children.Add(textBox);
+                algorithmsStack.Children.Add(algoStack);
+            }
+
+            var buttonStack = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Margin = new Thickness(0, 15, 0, 0)
+            };
+            var okButton = new Button
+            {
+                Content = "Применить",
+                Width = 100,
+                Margin = new Thickness(10, 0, 10, 0)
+            };
+            var cancelButton = new Button
+            {
+                Content = "Отмена",
+                Width = 100,
+                Margin = new Thickness(10, 0, 10, 0)
+            };
+
+            okButton.Click += (s, e2) =>
+            {
+                // Сохраняем общие настройки
+                if (int.TryParse(generalTextBox.Text, out int generalMax) && generalMax >= 0)
+                {
+                    maxIterations = generalMax;
+                }
+
+                // Сохраняем настройки для алгоритмов
+                foreach (var child in algorithmsStack.Children)
+                {
+                    if (child is StackPanel algoStack && algoStack.Children.Count == 2)
+                    {
+                        var textBox = algoStack.Children[1] as TextBox;
+                        if (textBox != null && int.TryParse(textBox.Text, out int algoMax) && algoMax >= 0)
+                        {
+                            algorithmMaxIterations[textBox.Tag.ToString()] = algoMax;
+                        }
+                    }
+                }
+
+                dialog.DialogResult = true;
+                dialog.Close();
+                UpdateStatus("Настройки итераций применены");
+            };
+
+            cancelButton.Click += (s, e2) =>
+            {
+                dialog.DialogResult = false;
+                dialog.Close();
+            };
+
+            buttonStack.Children.Add(okButton);
+            buttonStack.Children.Add(cancelButton);
+
+            stackPanel.Children.Add(generalLabel);
+            stackPanel.Children.Add(generalTextBox);
+            stackPanel.Children.Add(algorithmsLabel);
+            stackPanel.Children.Add(algorithmsStack);
+            stackPanel.Children.Add(buttonStack);
+
+            dialog.Content = stackPanel;
+            dialog.ShowDialog();
         }
 
         private void ResetColors_Click(object sender, RoutedEventArgs e)
@@ -821,7 +635,7 @@ namespace WpfApp1.OlimpSort
                 Owner = this
             };
 
-            var stackPanel = new StackPanel { Margin = new Thickness(20) };
+            var stackPanel = new StackPanel { Margin = new Thickness(20, 20, 20, 20) };
 
             var linkLabel = new TextBlock { Text = "Ссылка на Google таблицу:" };
             var linkTextBox = new TextBox { Height = 25, Margin = new Thickness(0, 5, 0, 15) };
@@ -830,8 +644,8 @@ namespace WpfApp1.OlimpSort
             var apiKeyTextBox = new TextBox { Height = 25, Margin = new Thickness(0, 5, 0, 15) };
 
             var buttonStack = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center };
-            var okButton = new Button { Content = "Загрузить", Width = 100, Margin = new Thickness(10) };
-            var cancelButton = new Button { Content = "Отмена", Width = 100, Margin = new Thickness(10) };
+            var okButton = new Button { Content = "Загрузить", Width = 100, Margin = new Thickness(10, 0, 10, 0) };
+            var cancelButton = new Button { Content = "Отмена", Width = 100, Margin = new Thickness(10, 0, 10, 0) };
 
             okButton.Click += async (s, e) =>
             {
@@ -997,28 +811,5 @@ namespace WpfApp1.OlimpSort
                 arraySize = size;
             }
         }
-    }
-
-    // Вспомогательные классы вынесены за пределы основного класса
-    public class SortAlgorithm
-    {
-        public string Name { get; set; }
-        public Func<List<int>, bool, (List<int>, List<ColorInfo>, int)> SortFunction { get; set; }
-        public List<int> CurrentData { get; set; }
-        public bool IsAscending { get; set; }
-        public Stopwatch Timer { get; set; } = new Stopwatch();
-    }
-
-    public class ColorInfo
-    {
-        public Brush Color { get; set; }
-        public int Index { get; set; }
-    }
-
-    public class VisualizationElement
-    {
-        public int Value { get; set; }
-        public double Height { get; set; }
-        public Brush Color { get; set; }
     }
 }
