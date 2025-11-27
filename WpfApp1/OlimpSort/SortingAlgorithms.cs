@@ -1,317 +1,266 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Diagnostics;
 using System.Windows.Media;
 
 namespace WpfApp1.OlimpSort
 {
+    public class SortingResult
+    {
+        public TimeSpan Time { get; set; }
+        public int Iterations { get; set; }
+        public bool IsCompleted { get; set; } = true;
+        public List<int> SortedArray { get; set; }
+        public List<ColorInfo> ColorInfo { get; set; }
+    }
+
     public static class SortingAlgorithms
     {
         private static Random random = new Random();
 
-        // Структура для хранения параметров сортировки
-        public struct SortParameters
+        public static SortingResult BubbleSort(List<int> array, bool ascending = true, int maxIterations = int.MaxValue)
         {
-            public int MaxIterations { get; set; }
-            public bool CountSwapsAsIterations { get; set; }
-        }
-
-        // Исправленные алгоритмы сортировки с улучшенным счетчиком итераций
-        public static (List<int>, List<ColorInfo>, int) BubbleSort(List<int> data, bool ascending, SortParameters parameters = default)
-        {
-            var arr = data.ToList();
-            var colors = Enumerable.Range(0, arr.Count).Select(i => new ColorInfo
-            {
-                Color = Brushes.LightBlue,
-                Index = i
-            }).ToList();
-
-            bool swapped;
+            var stopwatch = Stopwatch.StartNew();
             int iterations = 0;
-            int maxIterations = parameters.MaxIterations > 0 ? parameters.MaxIterations : int.MaxValue;
+            int n = array.Count;
+            var resultArray = new List<int>(array);
+            var colors = CreateDefaultColors(n);
 
-            for (int i = 0; i < arr.Count - 1 && iterations < maxIterations; i++)
+            for (int i = 0; i < n - 1 && iterations < maxIterations; i++)
             {
-                swapped = false;
-                for (int j = 0; j < arr.Count - i - 1 && iterations < maxIterations; j++)
+                for (int j = 0; j < n - i - 1; j++)
                 {
-                    iterations++;
+                    // Обновляем цвета для визуализации
+                    UpdateColors(colors, j, j + 1, Brushes.Red);
 
-                    // Проверка превышения лимита итераций
-                    if (iterations >= maxIterations)
-                        break;
-
-                    // Highlight compared elements
-                    colors[j].Color = Brushes.Red;
-                    colors[j + 1].Color = Brushes.Red;
-
-                    bool shouldSwap = ascending ? arr[j] > arr[j + 1] : arr[j] < arr[j + 1];
+                    bool shouldSwap = ascending ?
+                        resultArray[j] > resultArray[j + 1] :
+                        resultArray[j] < resultArray[j + 1];
 
                     if (shouldSwap)
                     {
-                        (arr[j], arr[j + 1]) = (arr[j + 1], arr[j]);
-                        swapped = true;
+                        // Своп элементов
+                        int temp = resultArray[j];
+                        resultArray[j] = resultArray[j + 1];
+                        resultArray[j + 1] = temp;
 
-                        // Highlight swapped elements
-                        colors[j].Color = Brushes.Green;
-                        colors[j + 1].Color = Brushes.Green;
+                        // Подсвечиваем swapped элементы
+                        UpdateColors(colors, j, j + 1, Brushes.Green);
                     }
                     else
                     {
-                        colors[j].Color = Brushes.Orange;
-                        colors[j + 1].Color = Brushes.Orange;
-                    }
-
-                    // Reset other colors
-                    for (int k = 0; k < colors.Count; k++)
-                    {
-                        if (k != j && k != j + 1)
-                        {
-                            colors[k].Color = k < arr.Count - i ? Brushes.LightBlue : Brushes.LightGreen;
-                        }
+                        UpdateColors(colors, j, j + 1, Brushes.Orange);
                     }
                 }
-
-                if (!swapped) break;
+                iterations++; // Одна итерация = один полный проход
             }
 
-            // Final state - all sorted
-            for (int i = 0; i < colors.Count; i++)
+            // Финальная раскраска - все отсортировано
+            SetAllColors(colors, Brushes.LightGreen);
+
+            stopwatch.Stop();
+            return new SortingResult
             {
-                colors[i].Color = Brushes.LightGreen;
-            }
-            return (arr, colors, iterations);
+                Time = stopwatch.Elapsed,
+                Iterations = iterations,
+                SortedArray = resultArray,
+                ColorInfo = colors,
+                IsCompleted = iterations < maxIterations
+            };
         }
 
-        public static (List<int>, List<ColorInfo>, int) InsertionSort(List<int> data, bool ascending, SortParameters parameters = default)
+        public static SortingResult InsertionSort(List<int> array, bool ascending = true, int maxIterations = int.MaxValue)
         {
-            var arr = data.ToList();
-            var colors = Enumerable.Range(0, arr.Count).Select(i => new ColorInfo
-            {
-                Color = Brushes.LightBlue,
-                Index = i
-            }).ToList();
-
+            var stopwatch = Stopwatch.StartNew();
             int iterations = 0;
-            int maxIterations = parameters.MaxIterations > 0 ? parameters.MaxIterations : int.MaxValue;
+            int n = array.Count;
+            var resultArray = new List<int>(array);
+            var colors = CreateDefaultColors(n);
 
-            for (int i = 1; i < arr.Count && iterations < maxIterations; i++)
+            for (int i = 1; i < n && iterations < maxIterations; i++)
             {
-                int key = arr[i];
+                int key = resultArray[i];
                 int j = i - 1;
 
+                // Подсвечиваем текущий элемент
                 colors[i].Color = Brushes.Red;
 
-                while (j >= 0 && (ascending ? arr[j] > key : arr[j] < key) && iterations < maxIterations)
+                while (j >= 0 && (
+                    (ascending && resultArray[j] > key) ||
+                    (!ascending && resultArray[j] < key)) &&
+                    iterations < maxIterations)
                 {
-                    iterations++;
+                    resultArray[j + 1] = resultArray[j];
 
-                    if (iterations >= maxIterations)
-                        break;
-
+                    // Обновляем цвета при сдвиге
                     colors[j].Color = Brushes.Orange;
-                    arr[j + 1] = arr[j];
+                    colors[j + 1].Color = Brushes.Green;
+
                     j--;
-
-                    // Update colors during shift
-                    for (int k = 0; k <= i; k++)
-                    {
-                        if (k == j + 1) colors[k].Color = Brushes.Green;
-                        else if (k <= i) colors[k].Color = Brushes.LightBlue;
-                    }
+                    iterations++;
                 }
 
-                if (iterations < maxIterations)
-                {
-                    iterations++; // Count the last comparison that breaks the loop
-                    arr[j + 1] = key;
-                }
+                resultArray[j + 1] = key;
 
-                // Update colors for sorted portion
+                // Обновляем цвета для отсортированной части
                 for (int k = 0; k <= i; k++)
                 {
                     colors[k].Color = Brushes.LightGreen;
                 }
+
+                iterations++; // Одна итерация = одна вставка элемента
             }
 
-            // Final state
-            for (int i = 0; i < colors.Count; i++)
+            // Финальная раскраска
+            SetAllColors(colors, Brushes.LightGreen);
+
+            stopwatch.Stop();
+            return new SortingResult
             {
-                colors[i].Color = Brushes.LightGreen;
-            }
-            return (arr, colors, iterations);
+                Time = stopwatch.Elapsed,
+                Iterations = iterations,
+                SortedArray = resultArray,
+                ColorInfo = colors,
+                IsCompleted = iterations < maxIterations
+            };
         }
 
-        public static (List<int>, List<ColorInfo>, int) ShakerSort(List<int> data, bool ascending, SortParameters parameters = default)
+        public static SortingResult ShakerSort(List<int> array, bool ascending = true, int maxIterations = int.MaxValue)
         {
-            var arr = data.ToList();
-            var colors = Enumerable.Range(0, arr.Count).Select(i => new ColorInfo
-            {
-                Color = Brushes.LightBlue,
-                Index = i
-            }).ToList();
-
-            bool swapped = true;
-            int start = 0;
-            int end = arr.Count - 1;
+            var stopwatch = Stopwatch.StartNew();
             int iterations = 0;
-            int maxIterations = parameters.MaxIterations > 0 ? parameters.MaxIterations : int.MaxValue;
+            var resultArray = new List<int>(array);
+            var colors = CreateDefaultColors(resultArray.Count);
 
-            while (swapped && iterations < maxIterations)
+            int left = 0;
+            int right = resultArray.Count - 1;
+
+            while (left <= right && iterations < maxIterations)
             {
-                swapped = false;
-
-                // Forward pass
-                for (int i = start; i < end && iterations < maxIterations; i++)
+                // Проход слева направо
+                for (int i = left; i < right; i++)
                 {
-                    iterations++;
+                    UpdateColors(colors, i, i + 1, Brushes.Red);
 
-                    if (iterations >= maxIterations)
-                        break;
-
-                    colors[i].Color = Brushes.Red;
-                    colors[i + 1].Color = Brushes.Red;
-
-                    bool shouldSwap = ascending ? arr[i] > arr[i + 1] : arr[i] < arr[i + 1];
+                    bool shouldSwap = ascending ?
+                        resultArray[i] > resultArray[i + 1] :
+                        resultArray[i] < resultArray[i + 1];
 
                     if (shouldSwap)
                     {
-                        (arr[i], arr[i + 1]) = (arr[i + 1], arr[i]);
-                        swapped = true;
+                        int temp = resultArray[i];
+                        resultArray[i] = resultArray[i + 1];
+                        resultArray[i + 1] = temp;
 
-                        colors[i].Color = Brushes.Green;
-                        colors[i + 1].Color = Brushes.Green;
-                    }
-
-                    // Reset colors for non-active elements
-                    for (int k = 0; k < colors.Count; k++)
-                    {
-                        if (k != i && k != i + 1)
-                        {
-                            if (k < start || k > end)
-                                colors[k].Color = Brushes.LightGreen;
-                            else
-                                colors[k].Color = Brushes.LightBlue;
-                        }
+                        UpdateColors(colors, i, i + 1, Brushes.Green);
                     }
                 }
+                right--;
 
-                if (!swapped || iterations >= maxIterations) break;
-
-                end--;
-
-                // Backward pass
-                for (int i = end - 1; i >= start && iterations < maxIterations; i--)
+                // Проход справа налево
+                for (int i = right; i > left; i--)
                 {
-                    iterations++;
+                    UpdateColors(colors, i - 1, i, Brushes.Red);
 
-                    if (iterations >= maxIterations)
-                        break;
-
-                    colors[i].Color = Brushes.Red;
-                    colors[i + 1].Color = Brushes.Red;
-
-                    bool shouldSwap = ascending ? arr[i] > arr[i + 1] : arr[i] < arr[i + 1];
+                    bool shouldSwap = ascending ?
+                        resultArray[i - 1] > resultArray[i] :
+                        resultArray[i - 1] < resultArray[i];
 
                     if (shouldSwap)
                     {
-                        (arr[i], arr[i + 1]) = (arr[i + 1], arr[i]);
-                        swapped = true;
+                        int temp = resultArray[i];
+                        resultArray[i] = resultArray[i - 1];
+                        resultArray[i - 1] = temp;
 
-                        colors[i].Color = Brushes.Green;
-                        colors[i + 1].Color = Brushes.Green;
-                    }
-
-                    // Reset colors for non-active elements
-                    for (int k = 0; k < colors.Count; k++)
-                    {
-                        if (k != i && k != i + 1)
-                        {
-                            if (k < start || k > end)
-                                colors[k].Color = Brushes.LightGreen;
-                            else
-                                colors[k].Color = Brushes.LightBlue;
-                        }
+                        UpdateColors(colors, i - 1, i, Brushes.Green);
                     }
                 }
+                left++;
 
-                start++;
+                iterations++; // Одна итерация = один проход в обе стороны
             }
 
-            // Final state
-            for (int i = 0; i < colors.Count; i++)
+            // Финальная раскраска
+            SetAllColors(colors, Brushes.LightGreen);
+
+            stopwatch.Stop();
+            return new SortingResult
             {
-                colors[i].Color = Brushes.LightGreen;
-            }
-            return (arr, colors, iterations);
+                Time = stopwatch.Elapsed,
+                Iterations = iterations,
+                SortedArray = resultArray,
+                ColorInfo = colors,
+                IsCompleted = iterations < maxIterations
+            };
         }
 
-        public static (List<int>, List<ColorInfo>, int) QuickSort(List<int> data, bool ascending, SortParameters parameters = default)
+        public static SortingResult QuickSort(List<int> array, bool ascending = true, int maxIterations = int.MaxValue)
         {
-            var arr = data.ToList();
-            var colors = Enumerable.Range(0, arr.Count).Select(i => new ColorInfo
-            {
-                Color = Brushes.LightBlue,
-                Index = i
-            }).ToList();
-
+            var stopwatch = Stopwatch.StartNew();
             int iterations = 0;
-            int maxIterations = parameters.MaxIterations > 0 ? parameters.MaxIterations : int.MaxValue;
-            QuickSortRecursive(arr, 0, arr.Count - 1, ascending, colors, ref iterations, maxIterations);
+            var resultArray = new List<int>(array);
+            var colors = CreateDefaultColors(resultArray.Count);
 
-            // Final state
-            for (int i = 0; i < colors.Count; i++)
+            QuickSortRecursive(resultArray, 0, resultArray.Count - 1, ascending, colors, ref iterations, maxIterations);
+
+            // Финальная раскраска
+            SetAllColors(colors, Brushes.LightGreen);
+
+            stopwatch.Stop();
+            return new SortingResult
             {
-                colors[i].Color = Brushes.LightGreen;
-            }
-            return (arr, colors, iterations);
+                Time = stopwatch.Elapsed,
+                Iterations = iterations,
+                SortedArray = resultArray,
+                ColorInfo = colors,
+                IsCompleted = iterations < maxIterations
+            };
         }
 
-        private static void QuickSortRecursive(List<int> arr, int low, int high, bool ascending, List<ColorInfo> colors, ref int iterations, int maxIterations)
+        private static void QuickSortRecursive(List<int> array, int low, int high, bool ascending, List<ColorInfo> colors, ref int iterations, int maxIterations)
         {
             if (low < high && iterations < maxIterations)
             {
-                int pi = Partition(arr, low, high, ascending, colors, ref iterations, maxIterations);
+                int pi = Partition(array, low, high, ascending, colors, ref iterations, maxIterations);
+                iterations++;
 
                 if (iterations < maxIterations)
-                    QuickSortRecursive(arr, low, pi - 1, ascending, colors, ref iterations, maxIterations);
+                    QuickSortRecursive(array, low, pi - 1, ascending, colors, ref iterations, maxIterations);
 
                 if (iterations < maxIterations)
-                    QuickSortRecursive(arr, pi + 1, high, ascending, colors, ref iterations, maxIterations);
+                    QuickSortRecursive(array, pi + 1, high, ascending, colors, ref iterations, maxIterations);
             }
         }
 
-        private static int Partition(List<int> arr, int low, int high, bool ascending, List<ColorInfo> colors, ref int iterations, int maxIterations)
+        private static int Partition(List<int> array, int low, int high, bool ascending, List<ColorInfo> colors, ref int iterations, int maxIterations)
         {
-            int pivot = arr[high];
-
-            // Color pivot
-            colors[high].Color = Brushes.Purple;
+            int pivot = array[high];
+            colors[high].Color = Brushes.Purple; // Опорный элемент
 
             int i = low - 1;
 
             for (int j = low; j < high && iterations < maxIterations; j++)
             {
-                iterations++;
-
-                if (iterations >= maxIterations)
-                    break;
-
                 colors[j].Color = Brushes.Red;
 
-                bool shouldSwap = ascending ? arr[j] <= pivot : arr[j] >= pivot;
+                bool condition = ascending ?
+                    array[j] <= pivot :
+                    array[j] >= pivot;
 
-                if (shouldSwap)
+                if (condition)
                 {
                     i++;
-                    (arr[i], arr[j]) = (arr[j], arr[i]);
 
-                    // Color swapped elements
+                    // Своп элементов
+                    int temp = array[i];
+                    array[i] = array[j];
+                    array[j] = temp;
+
                     colors[i].Color = Brushes.Green;
                     if (i != j) colors[j].Color = Brushes.Orange;
                 }
 
-                // Reset colors for non-active elements
+                // Сбрасываем цвета неактивных элементов
                 for (int k = low; k <= high; k++)
                 {
                     if (k != j && k != i && k != high && colors[k].Color != Brushes.Green)
@@ -323,67 +272,97 @@ namespace WpfApp1.OlimpSort
 
             if (iterations < maxIterations)
             {
-                (arr[i + 1], arr[high]) = (arr[high], arr[i + 1]);
+                int temp1 = array[i + 1];
+                array[i + 1] = array[high];
+                array[high] = temp1;
             }
 
-            // Color the final pivot position
             colors[i + 1].Color = Brushes.LightGreen;
             colors[high].Color = Brushes.LightBlue;
 
             return i + 1;
         }
 
-        public static (List<int>, List<ColorInfo>, int) BogoSort(List<int> data, bool ascending, SortParameters parameters = default)
+        public static SortingResult BogoSort(List<int> array, bool ascending = true, int maxIterations = 10000)
         {
-            var arr = data.ToList();
-            var colors = Enumerable.Range(0, arr.Count).Select(i => new ColorInfo
-            {
-                Color = Brushes.LightBlue,
-                Index = i
-            }).ToList();
-
-            int attempts = 0;
-            int maxAttempts = parameters.MaxIterations > 0 ? parameters.MaxIterations : 10000; // Настраиваемый лимит
+            var stopwatch = Stopwatch.StartNew();
             int iterations = 0;
+            var resultArray = new List<int>(array);
+            var colors = CreateDefaultColors(resultArray.Count);
 
-            while (!IsSorted(arr, ascending) && attempts < maxAttempts && iterations < maxAttempts)
+            while (!IsSorted(resultArray, ascending) && iterations < maxIterations)
             {
                 iterations++;
-                Shuffle(arr);
-                attempts++;
+                Shuffle(resultArray);
 
-                // Color based on sorted status
-                for (int i = 0; i < colors.Count; i++)
-                {
-                    colors[i].Color = Brushes.Orange; // Shuffling color
-                }
+                // Раскрашиваем при перемешивании
+                SetAllColors(colors, Brushes.Orange);
             }
 
-            // Final coloring
-            for (int i = 0; i < colors.Count; i++)
+            // Финальная раскраска
+            SetAllColors(colors, IsSorted(resultArray, ascending) ? Brushes.LightGreen : Brushes.Red);
+
+            stopwatch.Stop();
+            return new SortingResult
             {
-                colors[i].Color = IsSorted(arr, ascending) ? Brushes.LightGreen : Brushes.Red;
-            }
-
-            return (arr, colors, iterations);
+                Time = stopwatch.Elapsed,
+                Iterations = iterations,
+                SortedArray = resultArray,
+                ColorInfo = colors,
+                IsCompleted = iterations < maxIterations && IsSorted(resultArray, ascending)
+            };
         }
 
-        private static bool IsSorted(List<int> arr, bool ascending)
+        private static bool IsSorted(List<int> array, bool ascending)
         {
-            for (int i = 0; i < arr.Count - 1; i++)
+            for (int i = 0; i < array.Count - 1; i++)
             {
-                if (ascending && arr[i] > arr[i + 1]) return false;
-                if (!ascending && arr[i] < arr[i + 1]) return false;
+                if (ascending && array[i] > array[i + 1])
+                    return false;
+                if (!ascending && array[i] < array[i + 1])
+                    return false;
             }
             return true;
         }
 
-        private static void Shuffle(List<int> arr)
+        private static void Shuffle(List<int> array)
         {
-            for (int i = 0; i < arr.Count; i++)
+            int n = array.Count;
+            for (int i = 0; i < n; i++)
             {
-                int j = random.Next(i, arr.Count);
-                (arr[i], arr[j]) = (arr[j], arr[i]);
+                int j = random.Next(i, n);
+                int temp = array[i];
+                array[i] = array[j];
+                array[j] = temp;
+            }
+        }
+
+        // Вспомогательные методы для работы с цветами
+        private static List<ColorInfo> CreateDefaultColors(int count)
+        {
+            var colors = new List<ColorInfo>();
+            for (int i = 0; i < count; i++)
+            {
+                colors.Add(new ColorInfo
+                {
+                    Color = Brushes.LightBlue,
+                    Index = i
+                });
+            }
+            return colors;
+        }
+
+        private static void UpdateColors(List<ColorInfo> colors, int index1, int index2, Brush color)
+        {
+            if (index1 < colors.Count) colors[index1].Color = color;
+            if (index2 < colors.Count) colors[index2].Color = color;
+        }
+
+        private static void SetAllColors(List<ColorInfo> colors, Brush color)
+        {
+            foreach (var colorInfo in colors)
+            {
+                colorInfo.Color = color;
             }
         }
     }

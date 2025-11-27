@@ -8,7 +8,7 @@ namespace WpfApp1.OlimpSort
     public class SortAlgorithm
     {
         public string Name { get; set; }
-        public Func<List<int>, bool, SortingAlgorithms.SortParameters, (List<int>, List<ColorInfo>, int)> SortFunction { get; set; }
+        public Func<List<int>, bool, int, SortingResult> SortFunction { get; set; }
         public List<int> CurrentData { get; set; }
         public bool IsAscending { get; set; }
         public Stopwatch Timer { get; set; } = new Stopwatch();

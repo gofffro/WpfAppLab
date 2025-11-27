@@ -291,32 +291,26 @@ namespace WpfApp1.OlimpSort
                         algoMaxIterations = maxIterations;
                     }
 
-                    var parameters = new SortingAlgorithms.SortParameters
-                    {
-                        MaxIterations = algoMaxIterations
-                    };
+                    var result = algorithm.SortFunction(algorithm.CurrentData, algorithm.IsAscending, algoMaxIterations);
 
-                    var stopwatch = Stopwatch.StartNew();
-                    var result = algorithm.SortFunction(algorithm.CurrentData, algorithm.IsAscending, parameters);
-                    stopwatch.Stop();
-
-                    algorithmTimes[algorithm.Name] = stopwatch.Elapsed;
-                    algorithmIterations[algorithm.Name] = result.Item3;
+                    algorithmTimes[algorithm.Name] = result.Time;
+                    algorithmIterations[algorithm.Name] = result.Iterations;
 
                     timingResults.AppendLine($"{algorithm.Name}:");
-                    timingResults.AppendLine($"  Время: {stopwatch.Elapsed.TotalMilliseconds:F4} мс");
-                    timingResults.AppendLine($"  Итераций: {result.Item3}");
-                    if (result.Item3 >= algoMaxIterations && algoMaxIterations > 0)
+                    timingResults.AppendLine($"  Время: {result.Time.TotalMilliseconds:F4} мс");
+                    timingResults.AppendLine($"  Итераций: {result.Iterations}");
+
+                    if (!result.IsCompleted)
                     {
-                        timingResults.AppendLine($"  ДОСТИГНУТ ЛИМИТ ИТЕРАЦИЙ ({algoMaxIterations})");
+                        timingResults.AppendLine($"  ПРЕРВАНО - достигнут лимит итераций ({algoMaxIterations})");
                     }
                     timingResults.AppendLine();
 
                     // Display first algorithm's visualization
                     if (algorithm == activeAlgorithms.First())
                     {
-                        SetResultData(result.Item1);
-                        UpdateVisualization(result.Item1, result.Item2);
+                        SetResultData(result.SortedArray);
+                        UpdateVisualization(result.SortedArray, result.ColorInfo);
                     }
                 }
                 catch (Exception ex)
@@ -812,4 +806,4 @@ namespace WpfApp1.OlimpSort
             }
         }
     }
-}
+}   
