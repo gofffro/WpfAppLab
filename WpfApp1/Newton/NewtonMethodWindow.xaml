@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:lvc="clr-namespace:LiveCharts.Wpf;assembly=LiveCharts.Wpf"
+        xmlns:oxy="http://oxyplot.org/wpf"
         mc:Ignorable="d"
         Title="Метод Ньютона - Поиск минимума функции" 
         Height="650" Width="900"
@@ -21,8 +21,8 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
         <!-- Menu -->
@@ -49,7 +49,6 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
@@ -60,7 +59,7 @@
 
                 <Label Grid.Row="0" Grid.Column="0" Content="Функция f(x):" Margin="5"/>
                 <TextBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="3" Name="txtFunction" Margin="5"
-             Text="x*x - 2*x + 1" ToolTip="Введите математическое выражение функции"/>
+                         Text="x*x - 2*x + 1" ToolTip="Введите математическое выражение функции"/>
 
                 <Label Grid.Row="1" Grid.Column="0" Content="Левая граница a:" Margin="5"/>
                 <TextBox Grid.Row="1" Grid.Column="1" Name="txtA" Margin="5" Text="-1"/>
@@ -74,19 +73,28 @@
                 <Label Grid.Row="2" Grid.Column="2" Content="Макс. итераций:" Margin="5"/>
                 <TextBox Grid.Row="2" Grid.Column="3" Name="txtMaxIterations" Margin="5" Text="100"/>
 
-                <StackPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="4" Orientation="Horizontal" Margin="5">
-                    <Button Name="btnCalculate" Content="Автоматически" Margin="5,0" Width="140" Click="Calculate_Click"/>
-                    <Button Name="btnStepByStep" Content="Пошагово" Margin="5,0" Width="100" Click="StartStepByStep_Click"/>
-                    <Button Name="btnNextStep" Content="Следующий шаг" Margin="5,0" Width="140" Click="NextStep_Click" IsEnabled="False"/>
+                <!-- Кнопки управления -->
+                <StackPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="4" 
+                            Orientation="Horizontal" Margin="5" HorizontalAlignment="Center">
+                    <Button Name="btnCalculate" Content="Рассчитать" Margin="5,0" 
+                            Width="120" Click="Calculate_Click"/>
+                    <Button Name="btnStepByStep" Content="Пошагово" Margin="5,0" 
+                            Width="100" Click="StartStepByStep_Click"/>
+                    <Button Name="btnNextStep" Content="Следующий шаг" Margin="5,0" 
+                            Width="120" Click="NextStep_Click" IsEnabled="False"/>
+                    <Button Name="btnResetSteps" Content="Сбросить" Margin="5,0" 
+                            Width="80" Click="ResetSteps_Click"/>
+                    <Button Name="btnClear" Content="Очистить" Margin="5,0" 
+                            Width="80" Click="Clear_Click"/>
                 </StackPanel>
 
                 <TextBlock Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="4" Name="lblStepInfo" Margin="5"
-               FontWeight="Bold" Foreground="DarkBlue"/>
+                           FontWeight="Bold" Foreground="DarkBlue"/>
             </Grid>
         </GroupBox>
 
         <!-- Results and Chart -->
-        <GroupBox Grid.Row="1" Header="Результаты" Margin="10,227,10,10" Padding="10">
+        <GroupBox Grid.Row="2" Header="Результаты" Margin="10" Padding="10">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -98,28 +106,10 @@
                     <TextBlock Name="lblResult" Text="Результат: " FontWeight="Bold" Margin="0,0,0,5"/>
                     <TextBlock Name="lblFunctionValue" Text="f(min) = " FontWeight="Bold" Margin="0,0,0,5"/>
                     <TextBlock Name="lblIterations" Text="Количество итераций: " FontWeight="Bold" Margin="0,0,0,5"/>
-                    <TextBlock Name="lblIterationDetails" Text="" FontStyle="Italic"/>
                 </StackPanel>
 
                 <!-- Chart -->
-                <lvc:CartesianChart Name="chart" LegendLocation="Right" Grid.Row="1">
-                    <lvc:CartesianChart.Series>
-                        <lvc:LineSeries Title="Функция" Values="{Binding FunctionValues}" 
-                                      PointGeometry="{x:Null}" LineSmoothness="0" Stroke="Blue" StrokeThickness="2"/>
-                        <lvc:ScatterSeries Title="Минимум" Values="{Binding MinimumPoint}" 
-                                         PointGeometry="{x:Static lvc:DefaultGeometries.Circle}" 
-                                         Stroke="Red" Fill="Red" StrokeThickness="3"/>
-                        <lvc:ScatterSeries Title="Шаги метода" Values="{Binding StepPoints}" 
-                                         PointGeometry="{x:Static lvc:DefaultGeometries.Triangle}" 
-                                         Stroke="Green" Fill="Green" StrokeThickness="2"/>
-                    </lvc:CartesianChart.Series>
-                    <lvc:CartesianChart.AxisX>
-                        <lvc:Axis Title="x"/>
-                    </lvc:CartesianChart.AxisX>
-                    <lvc:CartesianChart.AxisY>
-                        <lvc:Axis Title="f(x)"/>
-                    </lvc:CartesianChart.AxisY>
-                </lvc:CartesianChart>
+                <oxy:PlotView Grid.Row="1" Name="plotView" Margin="0,10,0,10"/>
             </Grid>
         </GroupBox>
     </Grid>

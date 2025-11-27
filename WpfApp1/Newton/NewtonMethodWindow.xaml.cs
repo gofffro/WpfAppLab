@@ -1,6 +1,6 @@
-﻿using LiveCharts;
-using LiveCharts.Defaults;
-using LiveCharts.Wpf;
+﻿using OxyPlot;
+using OxyPlot.Series;
+using OxyPlot.Axes;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -11,10 +11,10 @@ namespace WpfApp1
 {
     public partial class NewtonMethodWindow : Window
     {
-        public SeriesCollection SeriesCollection { get; set; }
-        public ChartValues<ObservablePoint> FunctionValues { get; set; }
-        public ChartValues<ObservablePoint> MinimumPoint { get; set; }
-        public ChartValues<ObservablePoint> StepPoints { get; set; }
+        public PlotModel PlotModel { get; set; }
+        private LineSeries functionSeries;
+        private ScatterSeries minimumSeries;
+        private ScatterSeries stepSeries;
 
         private NewtonMethod _newtonMethod;
         private bool _isStepByStepMode = false;
@@ -23,14 +23,75 @@ namespace WpfApp1
         public NewtonMethodWindow()
         {
             InitializeComponent();
+            InitializePlotModel();
             DataContext = this;
 
-            FunctionValues = new ChartValues<ObservablePoint>();
-            MinimumPoint = new ChartValues<ObservablePoint>();
-            StepPoints = new ChartValues<ObservablePoint>();
-
             miNextStep.IsEnabled = false;
+            btnNextStep.IsEnabled = false;
             this.Closing += Window_Closing;
+        }
+
+        private void InitializePlotModel()
+        {
+            PlotModel = new PlotModel
+            {
+                Title = "График функции и поиск минимума",
+                TitleColor = OxyColors.DarkBlue,
+                TextColor = OxyColors.DarkBlue,
+                PlotAreaBorderColor = OxyColors.DarkBlue
+            };
+
+            // Настройка осей
+            PlotModel.Axes.Add(new LinearAxis
+            {
+                Position = AxisPosition.Bottom,
+                Title = "x",
+                TitleColor = OxyColors.DarkBlue,
+                TextColor = OxyColors.DarkBlue,
+                AxislineColor = OxyColors.DarkBlue
+            });
+            PlotModel.Axes.Add(new LinearAxis
+            {
+                Position = AxisPosition.Left,
+                Title = "f(x)",
+                TitleColor = OxyColors.DarkBlue,
+                TextColor = OxyColors.DarkBlue,
+                AxislineColor = OxyColors.DarkBlue
+            });
+
+            // Инициализация серий
+            functionSeries = new LineSeries
+            {
+                Title = "Функция",
+                Color = OxyColors.Blue,
+                StrokeThickness = 2
+            };
+
+            minimumSeries = new ScatterSeries
+            {
+                Title = "Минимум",
+                MarkerType = MarkerType.Circle,
+                MarkerSize = 6,
+                MarkerFill = OxyColors.Red,
+                MarkerStroke = OxyColors.DarkRed,
+                MarkerStrokeThickness = 2
+            };
+
+            stepSeries = new ScatterSeries
+            {
+                Title = "Шаги метода",
+                MarkerType = MarkerType.Triangle,
+                MarkerSize = 5,
+                MarkerFill = OxyColors.Green,
+                MarkerStroke = OxyColors.DarkGreen,
+                MarkerStrokeThickness = 2
+            };
+
+            PlotModel.Series.Add(functionSeries);
+            PlotModel.Series.Add(minimumSeries);
+            PlotModel.Series.Add(stepSeries);
+
+            plotView.Model = PlotModel;
         }
 
         private void Calculate_Click(object sender, RoutedEventArgs e)
@@ -143,80 +204,165 @@ namespace WpfApp1
             lblIterations.Text = $"Количество итераций: {_iterationHistory.Count - 1}";
             lblStepInfo.Text = "Вычисление завершено";
 
-            MinimumPoint.Clear();
-            MinimumPoint.Add(new LiveCharts.Defaults.ObservablePoint(result, functionValue));
+            minimumSeries.Points.Clear();
+            minimumSeries.Points.Add(new ScatterPoint(result, functionValue));
+            PlotModel.InvalidatePlot(true);
         }
-
 
         private void ResetStepMode()
         {
             _isStepByStepMode = false;
             miNextStep.IsEnabled = false;
-            btnNextStep.IsEnabled = false; // Отключаем кнопку в панели
+            btnNextStep.IsEnabled = false;
             btnStepByStep.IsEnabled = true;
             btnCalculate.IsEnabled = true;
             _iterationHistory.Clear();
-            StepPoints.Clear();
+            stepSeries.Points.Clear();
             lblStepInfo.Text = "";
+            PlotModel.InvalidatePlot(true);
         }
 
         private void PlotStepByStep(double currentX)
         {
-            StepPoints.Clear();
+            stepSeries.Points.Clear();
             foreach (double x in _iterationHistory)
             {
                 double y = _newtonMethod.CalculateFunction(x);
-                StepPoints.Add(new LiveCharts.Defaults.ObservablePoint(x, y));
+                stepSeries.Points.Add(new ScatterPoint(x, y));
             }
+            PlotModel.InvalidatePlot(true);
         }
-
 
         private void PlotGraphWithMinimumInterval(double a, double b, double xMin, double yMin)
         {
             PlotFunction(a, b);
-            MinimumPoint.Clear();
-            MinimumPoint.Add(new LiveCharts.Defaults.ObservablePoint(xMin, yMin));
-            StepPoints.Clear();
+            minimumSeries.Points.Clear();
+            minimumSeries.Points.Add(new ScatterPoint(xMin, yMin));
+            stepSeries.Points.Clear();
+            PlotModel.InvalidatePlot(true);
         }
 
         private void PlotFunction(double a, double b)
         {
-            FunctionValues.Clear();
+            // Очищаем предыдущие серии
+            PlotModel.Series.Clear();
 
-            // Ширина «зоны разрыва» вокруг 0 и ограничение по Y для стабильного масштаба
-            double gap = Math.Max(1e-6, 0.001 * (b - a));
-            double YMAX = 1e6; // можно подобрать под задачу
+            // Создаем новые серии
+            functionSeries = new LineSeries
+            {
+                Title = "Функция",
+                Color = OxyColors.Blue,
+                StrokeThickness = 2
+            };
 
-            int pointsCount = 400;
+            minimumSeries = new ScatterSeries
+            {
+                Title = "Минимум",
+                MarkerType = MarkerType.Circle,
+                MarkerSize = 6,
+                MarkerFill = OxyColors.Red,
+                MarkerStroke = OxyColors.DarkRed,
+                MarkerStrokeThickness = 2
+            };
+
+            stepSeries = new ScatterSeries
+            {
+                Title = "Шаги метода",
+                MarkerType = MarkerType.Triangle,
+                MarkerSize = 5,
+                MarkerFill = OxyColors.Green,
+                MarkerStroke = OxyColors.DarkGreen,
+                MarkerStrokeThickness = 2
+            };
+
+            PlotModel.Series.Add(functionSeries);
+            PlotModel.Series.Add(minimumSeries);
+            PlotModel.Series.Add(stepSeries);
+
+            int pointsCount = 1000;
             double step = (b - a) / pointsCount;
 
-            for (double x = a; x <= b; x += step)
-            {
-                // Если близко к разрыву — вставляем «пробел» (NaN) и идём дальше
-                if (Math.Abs(x) < gap)
-                {
-                    FunctionValues.Add(new LiveCharts.Defaults.ObservablePoint(x, double.NaN));
-                    continue;
-                }
+            // Определяем порог для обнаружения разрывов
+            double discontinuityThreshold = 1000;
 
+            double prevY = double.NaN;
+            bool inSegment = false;
+            LineSeries currentSegment = null;
+
+            for (int i = 0; i <= pointsCount; i++)
+            {
+                double x = a + i * step;
                 double y = _newtonMethod.CalculateFunction(x);
 
-                // Отфильтровываем «заглушку» 1e10 и любые непригодные величины
-                if (double.IsNaN(y) || double.IsInfinity(y) || Math.Abs(y) > YMAX || Math.Abs(y - 1e10) < 1)
+                // Проверяем на корректность значения
+                bool isValid = !double.IsNaN(y) && !double.IsInfinity(y) && Math.Abs(y) < 1e10;
+
+                if (isValid)
                 {
-                    FunctionValues.Add(new LiveCharts.Defaults.ObservablePoint(x, double.NaN));
-                    continue;
+                    // Проверяем на разрыв
+                    if (!double.IsNaN(prevY) && inSegment)
+                    {
+                        double diff = Math.Abs(y - prevY);
+                        if (diff > discontinuityThreshold && Math.Abs(prevY) > 1 && Math.Abs(y) > 1)
+                        {
+                            // Обнаружен разрыв - завершаем текущий сегмент и начинаем новый
+                            if (currentSegment != null && currentSegment.Points.Count > 1)
+                            {
+                                PlotModel.Series.Add(currentSegment);
+                            }
+                            currentSegment = new LineSeries
+                            {
+                                Color = OxyColors.Blue,
+                                StrokeThickness = 2
+                            };
+                            inSegment = true;
+                        }
+                    }
+
+                    if (currentSegment == null)
+                    {
+                        currentSegment = new LineSeries
+                        {
+                            Color = OxyColors.Blue,
+                            StrokeThickness = 2
+                        };
+                        inSegment = true;
+                    }
+
+                    currentSegment.Points.Add(new DataPoint(x, y));
+                    prevY = y;
                 }
-
-                FunctionValues.Add(new LiveCharts.Defaults.ObservablePoint(x, y));
+                else
+                {
+                    // Некорректное значение - завершаем сегмент если он есть
+                    if (currentSegment != null && currentSegment.Points.Count > 1)
+                    {
+                        PlotModel.Series.Add(currentSegment);
+                        currentSegment = null;
+                    }
+                    inSegment = false;
+                    prevY = double.NaN;
+                }
             }
-        }
 
+            // Добавляем последний сегмент если он есть
+            if (currentSegment != null && currentSegment.Points.Count > 1)
+            {
+                PlotModel.Series.Add(currentSegment);
+            }
+
+            // Устанавливаем заголовок только для первой серии
+            if (PlotModel.Series.Count > 0 && PlotModel.Series[0] is LineSeries firstSeries)
+            {
+                firstSeries.Title = "Функция";
+            }
+
+            PlotModel.InvalidatePlot(true);
+        }
 
         private void ResetSteps_Click(object sender, RoutedEventArgs e)
         {
             ResetStepMode();
-            lblIterationDetails.Text = "";
         }
 
         private bool ValidateInput()
@@ -274,12 +420,10 @@ namespace WpfApp1
             lblIterations.Text = "Количество итераций: ";
             lblStepInfo.Text = "";
 
-            FunctionValues.Clear();
-            MinimumPoint.Clear();
-            StepPoints.Clear();
+            PlotModel.Series.Clear();
+            InitializePlotModel();
             ResetStepMode();
         }
-
 
         private void Exit_Click(object sender, RoutedEventArgs e)
         {
@@ -288,16 +432,12 @@ namespace WpfApp1
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            if (chart != null)
+            if (plotView != null)
             {
-                chart.Series.Clear();
-                chart = null;
+                plotView.Model = null;
             }
 
-            FunctionValues?.Clear();
-            MinimumPoint?.Clear();
-            StepPoints?.Clear();
-            SeriesCollection?.Clear();
+            PlotModel?.Series.Clear();
         }
 
         private void Help_Click(object sender, RoutedEventArgs e)
