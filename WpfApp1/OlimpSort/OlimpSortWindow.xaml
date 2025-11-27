@@ -109,9 +109,8 @@
 
                     <!-- Sort Order -->
                     <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="5">
-                        <TextBlock Text="Порядок:" VerticalAlignment="Center" Margin="0,0,10,0"/>
                         <RadioButton x:Name="AscendingRadio" Content="По возрастанию" IsChecked="True" GroupName="SortOrder"/>
-                        <RadioButton x:Name="DescendingRadio" Content="По убыванию" GroupName="SortOrder" Margin="10,0,0,0"/>
+                        <RadioButton x:Name="DescendingRadio" Content="По убыванию" GroupName="SortOrder" Margin="10,0,0,0" VerticalAlignment="Top"/>
                     </StackPanel>
 
                     <!-- Algorithm Selection -->
@@ -125,7 +124,7 @@
                         <CheckBox x:Name="BogoSortCheckBox" Content="BOGO" Style="{StaticResource CheckBoxStyle}"/>
 
                         <Button Content="Выбрать все" Click="SelectAll_Click" Style="{StaticResource ButtonStyle}" Margin="0,10,0,5"/>
-                        <Button Content="Снять все" Click="DeselectAll_Click" Style="{StaticResource ButtonStyle}"/>
+                        <Button Content="Снять все" Click="DeselectAll_Click" Style="{StaticResource ButtonStyle}" Width="258" Margin="0,2,0,2"/>
                     </StackPanel>
 
                     <!-- Generation Controls -->

@@ -22,6 +22,7 @@ namespace WpfApp1.OlimpSort
         private DispatcherTimer animationTimer;
         private List<SortAlgorithm> activeAlgorithms = new List<SortAlgorithm>();
         private Dictionary<string, TimeSpan> algorithmTimes = new Dictionary<string, TimeSpan>();
+        private Dictionary<string, int> algorithmIterations = new Dictionary<string, int>();
         private List<int> originalArray = new List<int>();
         private List<VisualizationElement> visualizationElements = new List<VisualizationElement>();
         private bool isVisualizationRunning = false;
@@ -163,7 +164,7 @@ namespace WpfApp1.OlimpSort
         public class SortAlgorithm
         {
             public string Name { get; set; }
-            public Func<List<int>, bool, (List<int>, List<ColorInfo>)> SortFunction { get; set; }
+            public Func<List<int>, bool, (List<int>, List<ColorInfo>, int)> SortFunction { get; set; }
             public List<int> CurrentData { get; set; }
             public bool IsAscending { get; set; }
             public Stopwatch Timer { get; set; } = new Stopwatch();
@@ -182,8 +183,8 @@ namespace WpfApp1.OlimpSort
             public Brush Color { get; set; }
         }
 
-        // Исправленные алгоритмы сортировки
-        private (List<int>, List<ColorInfo>) BubbleSort(List<int> data, bool ascending)
+        // Исправленные алгоритмы сортировки с счетчиком итераций
+        private (List<int>, List<ColorInfo>, int) BubbleSort(List<int> data, bool ascending)
         {
             var arr = data.ToList();
             var colors = Enumerable.Range(0, arr.Count).Select(i => new ColorInfo
@@ -193,11 +194,15 @@ namespace WpfApp1.OlimpSort
             }).ToList();
 
             bool swapped;
+            int iterations = 0;
+
             for (int i = 0; i < arr.Count - 1; i++)
             {
                 swapped = false;
                 for (int j = 0; j < arr.Count - i - 1; j++)
                 {
+                    iterations++;
+
                     // Highlight compared elements
                     colors[j].Color = Brushes.Red;
                     colors[j + 1].Color = Brushes.Red;
@@ -237,10 +242,10 @@ namespace WpfApp1.OlimpSort
             {
                 colors[i].Color = Brushes.LightGreen;
             }
-            return (arr, colors);
+            return (arr, colors, iterations);
         }
 
-        private (List<int>, List<ColorInfo>) InsertionSort(List<int> data, bool ascending)
+        private (List<int>, List<ColorInfo>, int) InsertionSort(List<int> data, bool ascending)
         {
             var arr = data.ToList();
             var colors = Enumerable.Range(0, arr.Count).Select(i => new ColorInfo
@@ -248,6 +253,8 @@ namespace WpfApp1.OlimpSort
                 Color = Brushes.LightBlue,
                 Index = i
             }).ToList();
+
+            int iterations = 0;
 
             for (int i = 1; i < arr.Count; i++)
             {
@@ -258,6 +265,7 @@ namespace WpfApp1.OlimpSort
 
                 while (j >= 0 && (ascending ? arr[j] > key : arr[j] < key))
                 {
+                    iterations++;
                     colors[j].Color = Brushes.Orange;
                     arr[j + 1] = arr[j];
                     j--;
@@ -269,6 +277,7 @@ namespace WpfApp1.OlimpSort
                         else if (k <= i) colors[k].Color = Brushes.LightBlue;
                     }
                 }
+                iterations++; // Count the last comparison that breaks the loop
                 arr[j + 1] = key;
 
                 // Update colors for sorted portion
@@ -283,10 +292,10 @@ namespace WpfApp1.OlimpSort
             {
                 colors[i].Color = Brushes.LightGreen;
             }
-            return (arr, colors);
+            return (arr, colors, iterations);
         }
 
-        private (List<int>, List<ColorInfo>) ShakerSort(List<int> data, bool ascending)
+        private (List<int>, List<ColorInfo>, int) ShakerSort(List<int> data, bool ascending)
         {
             var arr = data.ToList();
             var colors = Enumerable.Range(0, arr.Count).Select(i => new ColorInfo
@@ -298,6 +307,7 @@ namespace WpfApp1.OlimpSort
             bool swapped = true;
             int start = 0;
             int end = arr.Count - 1;
+            int iterations = 0;
 
             while (swapped)
             {
@@ -306,6 +316,7 @@ namespace WpfApp1.OlimpSort
                 // Forward pass
                 for (int i = start; i < end; i++)
                 {
+                    iterations++;
                     colors[i].Color = Brushes.Red;
                     colors[i + 1].Color = Brushes.Red;
 
@@ -340,6 +351,7 @@ namespace WpfApp1.OlimpSort
                 // Backward pass
                 for (int i = end - 1; i >= start; i--)
                 {
+                    iterations++;
                     colors[i].Color = Brushes.Red;
                     colors[i + 1].Color = Brushes.Red;
 
@@ -375,10 +387,10 @@ namespace WpfApp1.OlimpSort
             {
                 colors[i].Color = Brushes.LightGreen;
             }
-            return (arr, colors);
+            return (arr, colors, iterations);
         }
 
-        private (List<int>, List<ColorInfo>) QuickSort(List<int> data, bool ascending)
+        private (List<int>, List<ColorInfo>, int) QuickSort(List<int> data, bool ascending)
         {
             var arr = data.ToList();
             var colors = Enumerable.Range(0, arr.Count).Select(i => new ColorInfo
@@ -387,27 +399,28 @@ namespace WpfApp1.OlimpSort
                 Index = i
             }).ToList();
 
-            QuickSortRecursive(arr, 0, arr.Count - 1, ascending, colors);
+            int iterations = 0;
+            QuickSortRecursive(arr, 0, arr.Count - 1, ascending, colors, ref iterations);
 
             // Final state
             for (int i = 0; i < colors.Count; i++)
             {
                 colors[i].Color = Brushes.LightGreen;
             }
-            return (arr, colors);
+            return (arr, colors, iterations);
         }
 
-        private void QuickSortRecursive(List<int> arr, int low, int high, bool ascending, List<ColorInfo> colors)
+        private void QuickSortRecursive(List<int> arr, int low, int high, bool ascending, List<ColorInfo> colors, ref int iterations)
         {
             if (low < high)
             {
-                int pi = Partition(arr, low, high, ascending, colors);
-                QuickSortRecursive(arr, low, pi - 1, ascending, colors);
-                QuickSortRecursive(arr, pi + 1, high, ascending, colors);
+                int pi = Partition(arr, low, high, ascending, colors, ref iterations);
+                QuickSortRecursive(arr, low, pi - 1, ascending, colors, ref iterations);
+                QuickSortRecursive(arr, pi + 1, high, ascending, colors, ref iterations);
             }
         }
 
-        private int Partition(List<int> arr, int low, int high, bool ascending, List<ColorInfo> colors)
+        private int Partition(List<int> arr, int low, int high, bool ascending, List<ColorInfo> colors, ref int iterations)
         {
             int pivot = arr[high];
 
@@ -418,6 +431,7 @@ namespace WpfApp1.OlimpSort
 
             for (int j = low; j < high; j++)
             {
+                iterations++;
                 colors[j].Color = Brushes.Red;
 
                 bool shouldSwap = ascending ? arr[j] <= pivot : arr[j] >= pivot;
@@ -451,7 +465,7 @@ namespace WpfApp1.OlimpSort
             return i + 1;
         }
 
-        private (List<int>, List<ColorInfo>) BogoSort(List<int> data, bool ascending)
+        private (List<int>, List<ColorInfo>, int) BogoSort(List<int> data, bool ascending)
         {
             var arr = data.ToList();
             var colors = Enumerable.Range(0, arr.Count).Select(i => new ColorInfo
@@ -462,9 +476,11 @@ namespace WpfApp1.OlimpSort
 
             int attempts = 0;
             int maxAttempts = 10000; // Safety limit
+            int iterations = 0;
 
             while (!IsSorted(arr, ascending) && attempts < maxAttempts)
             {
+                iterations++;
                 Shuffle(arr);
                 attempts++;
 
@@ -481,7 +497,7 @@ namespace WpfApp1.OlimpSort
                 colors[i].Color = IsSorted(arr, ascending) ? Brushes.LightGreen : Brushes.Red;
             }
 
-            return (arr, colors);
+            return (arr, colors, iterations);
         }
 
         private bool IsSorted(List<int> arr, bool ascending)
@@ -521,6 +537,7 @@ namespace WpfApp1.OlimpSort
 
             originalArray = inputData.ToList();
             algorithmTimes.Clear();
+            algorithmIterations.Clear();
             activeAlgorithms.Clear();
 
             bool isAscending = AscendingRadio.IsChecked == true;
@@ -612,7 +629,12 @@ namespace WpfApp1.OlimpSort
                     stopwatch.Stop();
 
                     algorithmTimes[algorithm.Name] = stopwatch.Elapsed;
-                    timingResults.AppendLine($"{algorithm.Name}: {stopwatch.Elapsed.TotalMilliseconds:F4} мс");
+                    algorithmIterations[algorithm.Name] = result.Item3;
+
+                    timingResults.AppendLine($"{algorithm.Name}:");
+                    timingResults.AppendLine($"  Время: {stopwatch.Elapsed.TotalMilliseconds:F4} мс");
+                    timingResults.AppendLine($"  Итераций: {result.Item3}");
+                    timingResults.AppendLine();
 
                     // Display first algorithm's visualization
                     if (algorithm == activeAlgorithms.First())
@@ -624,6 +646,7 @@ namespace WpfApp1.OlimpSort
                 catch (Exception ex)
                 {
                     timingResults.AppendLine($"{algorithm.Name}: ОШИБКА - {ex.Message}");
+                    timingResults.AppendLine();
                 }
             }
 
@@ -633,7 +656,10 @@ namespace WpfApp1.OlimpSort
             if (algorithmTimes.Any())
             {
                 var fastest = algorithmTimes.OrderBy(kvp => kvp.Value.TotalMilliseconds).First();
-                timingResults.AppendLine($"\nСамый быстрый алгоритм: {fastest.Key} ({fastest.Value.TotalMilliseconds:F4} мс)");
+                var fastestIterations = algorithmIterations[fastest.Key];
+                timingResults.AppendLine($"Самый быстрый алгоритм: {fastest.Key}");
+                timingResults.AppendLine($"Время: {fastest.Value.TotalMilliseconds:F4} мс");
+                timingResults.AppendLine($"Итераций: {fastestIterations}");
                 TimingResultsTextBox.Text = timingResults.ToString();
             }
 
@@ -977,7 +1003,7 @@ namespace WpfApp1.OlimpSort
     public class SortAlgorithm
     {
         public string Name { get; set; }
-        public Func<List<int>, bool, (List<int>, List<ColorInfo>)> SortFunction { get; set; }
+        public Func<List<int>, bool, (List<int>, List<ColorInfo>, int)> SortFunction { get; set; }
         public List<int> CurrentData { get; set; }
         public bool IsAscending { get; set; }
         public Stopwatch Timer { get; set; } = new Stopwatch();
