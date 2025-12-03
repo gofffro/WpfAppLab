@@ -24,11 +24,10 @@ namespace WpfApp1.OlimpSort
         private List<SortAlgorithm> activeAlgorithms = new List<SortAlgorithm>();
         private Dictionary<string, TimeSpan> algorithmTimes = new Dictionary<string, TimeSpan>();
         private Dictionary<string, int> algorithmIterations = new Dictionary<string, int>();
-        private List<int> originalArray = new List<int>();
+        private List<double> originalArray = new List<double>();
         private List<VisualizationElement> visualizationElements = new List<VisualizationElement>();
         private bool isVisualizationRunning = false;
 
-        // Новые поля для управления итерациями
         private int maxIterations = 10000;
         private Dictionary<string, int> algorithmMaxIterations = new Dictionary<string, int>();
 
@@ -52,14 +51,13 @@ namespace WpfApp1.OlimpSort
                 Binding = new System.Windows.Data.Binding("[0]")
             });
 
-            var data = new List<List<int>>();
+            var data = new List<List<double>>();
             for (int i = 0; i < arraySize; i++)
             {
-                data.Add(new List<int> { 0 });
+                data.Add(new List<double> { 0.0 });
             }
             InputDataGrid.ItemsSource = data;
 
-            // Initialize result data grid
             ResultDataGrid.Columns.Clear();
             ResultDataGrid.ItemsSource = null;
             ResultDataGrid.Columns.Add(new DataGridTextColumn()
@@ -75,14 +73,14 @@ namespace WpfApp1.OlimpSort
             VisualizationContainer.ItemsSource = null;
         }
 
-        private void UpdateVisualization(List<int> data, List<ColorInfo> colorInfo = null)
+        private void UpdateVisualization(List<double> data, List<ColorInfo> colorInfo = null)
         {
             visualizationElements.Clear();
 
             if (data == null || data.Count == 0) return;
 
-            int maxValue = data.Max();
-            int minValue = data.Min();
+            double maxValue = data.Max();
+            double minValue = data.Min();
             double range = Math.Max(1, maxValue - minValue);
 
             for (int i = 0; i < data.Count; i++)
@@ -95,7 +93,6 @@ namespace WpfApp1.OlimpSort
                     Color = Brushes.LightBlue
                 };
 
-                // Apply color if provided
                 if (colorInfo != null && i < colorInfo.Count)
                 {
                     element.Color = colorInfo[i].Color;
@@ -107,19 +104,18 @@ namespace WpfApp1.OlimpSort
             VisualizationContainer.ItemsSource = visualizationElements.ToList();
         }
 
-        // Data management methods
-        private List<int> GetInputData()
+        private List<double> GetInputData()
         {
             try
             {
-                var items = InputDataGrid.ItemsSource as List<List<int>>;
+                var items = InputDataGrid.ItemsSource as List<List<double>>;
                 if (items == null)
                 {
                     MessageBox.Show("Данные не загружены", "Ошибка");
                     return null;
                 }
 
-                var data = new List<int>();
+                var data = new List<double>();
                 for (int i = 0; i < arraySize && i < items.Count; i++)
                 {
                     if (items[i] == null || items[i].Count == 0)
@@ -127,7 +123,16 @@ namespace WpfApp1.OlimpSort
                         MessageBox.Show($"Не заполнена строка {i + 1}", "Ошибка");
                         return null;
                     }
-                    data.Add(items[i][0]);
+
+                    if (double.TryParse(items[i][0].ToString(), out double value))
+                    {
+                        data.Add(value);
+                    }
+                    else
+                    {
+                        MessageBox.Show($"Неверный формат числа в строке {i + 1}", "Ошибка");
+                        return null;
+                    }
                 }
 
                 if (data.Count != arraySize)
@@ -145,27 +150,26 @@ namespace WpfApp1.OlimpSort
             }
         }
 
-        private void SetInputData(List<int> data)
+        private void SetInputData(List<double> data)
         {
-            var dataList = new List<List<int>>();
+            var dataList = new List<List<double>>();
             foreach (var value in data)
             {
-                dataList.Add(new List<int> { value });
+                dataList.Add(new List<double> { value });
             }
             InputDataGrid.ItemsSource = dataList;
         }
 
-        private void SetResultData(List<int> data)
+        private void SetResultData(List<double> data)
         {
-            var dataList = new List<List<int>>();
+            var dataList = new List<List<double>>();
             foreach (var value in data)
             {
-                dataList.Add(new List<int> { value });
+                dataList.Add(new List<double> { value });
             }
             ResultDataGrid.ItemsSource = dataList;
         }
 
-        // Исправленный метод запуска сортировки
         private void StartSorting_Click(object sender, RoutedEventArgs e)
         {
             var inputData = GetInputData();
@@ -188,7 +192,6 @@ namespace WpfApp1.OlimpSort
 
             bool isAscending = AscendingRadio.IsChecked == true;
 
-            // Create algorithms based on selection
             if (BubbleSortCheckBox.IsChecked == true)
             {
                 activeAlgorithms.Add(new SortAlgorithm
@@ -265,12 +268,10 @@ namespace WpfApp1.OlimpSort
             var timingResults = new System.Text.StringBuilder();
             timingResults.AppendLine("Время выполнения алгоритмов:\n");
 
-            // Run each algorithm and measure time
             foreach (var algorithm in activeAlgorithms)
             {
                 try
                 {
-                    // Определяем максимальное количество итераций для алгоритма
                     int algoMaxIterations = 0;
                     string algoKey = algorithm.Name switch
                     {
@@ -306,7 +307,6 @@ namespace WpfApp1.OlimpSort
                     }
                     timingResults.AppendLine();
 
-                    // Display first algorithm's visualization
                     if (algorithm == activeAlgorithms.First())
                     {
                         SetResultData(result.SortedArray);
@@ -322,7 +322,6 @@ namespace WpfApp1.OlimpSort
 
             TimingResultsTextBox.Text = timingResults.ToString();
 
-            // Determine fastest algorithm
             if (algorithmTimes.Any())
             {
                 var fastest = algorithmTimes.OrderBy(kvp => kvp.Value.TotalMilliseconds).First();
@@ -336,7 +335,6 @@ namespace WpfApp1.OlimpSort
             UpdateStatus("Сортировка завершена");
         }
 
-        // Новый метод для настройки параметров итераций
         private void ConfigureIterations_Click(object sender, RoutedEventArgs e)
         {
             var dialog = new Window
@@ -350,7 +348,6 @@ namespace WpfApp1.OlimpSort
 
             var stackPanel = new StackPanel { Margin = new Thickness(20, 20, 20, 20) };
 
-            // Общие настройки
             var generalLabel = new TextBlock
             {
                 Text = "Общее максимальное количество итераций:",
@@ -364,7 +361,6 @@ namespace WpfApp1.OlimpSort
                 Margin = new Thickness(0, 0, 0, 15)
             };
 
-            // Настройки для каждого алгоритма
             var algorithmsLabel = new TextBlock
             {
                 Text = "Настройки для алгоритмов (0 = без лимита):",
@@ -431,13 +427,11 @@ namespace WpfApp1.OlimpSort
 
             okButton.Click += (s, e2) =>
             {
-                // Сохраняем общие настройки
                 if (int.TryParse(generalTextBox.Text, out int generalMax) && generalMax >= 0)
                 {
                     maxIterations = generalMax;
                 }
 
-                // Сохраняем настройки для алгоритмов
                 foreach (var child in algorithmsStack.Children)
                 {
                     if (child is StackPanel algoStack && algoStack.Children.Count == 2)
@@ -483,7 +477,6 @@ namespace WpfApp1.OlimpSort
             }
         }
 
-        // Data generation and management
         private void GenerateRandom_Click(object sender, RoutedEventArgs e)
         {
             GenerateWithRange_Click(sender, e);
@@ -493,13 +486,14 @@ namespace WpfApp1.OlimpSort
         {
             try
             {
-                int min = int.Parse(MinValueTextBox.Text);
-                int max = int.Parse(MaxValueTextBox.Text);
+                double min = double.Parse(MinValueTextBox.Text);
+                double max = double.Parse(MaxValueTextBox.Text);
 
-                var data = new List<int>();
+                var data = new List<double>();
                 for (int i = 0; i < arraySize; i++)
                 {
-                    data.Add(random.Next(min, max + 1));
+                    double value = min + (random.NextDouble() * (max - min));
+                    data.Add(Math.Round(value, 2));
                 }
 
                 SetInputData(data);
@@ -554,7 +548,6 @@ namespace WpfApp1.OlimpSort
             BogoSortCheckBox.IsChecked = false;
         }
 
-        // Excel and Google Sheets methods
         private void LoadFromExcel_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -585,12 +578,12 @@ namespace WpfApp1.OlimpSort
                 }
 
                 var worksheet = package.Workbook.Worksheets[0];
-                var data = new List<int>();
+                var data = new List<double>();
 
                 for (int i = 1; i <= 100; i++)
                 {
                     if (worksheet.Cells[i, 1].Value == null) break;
-                    if (int.TryParse(worksheet.Cells[i, 1].Value.ToString(), out int value))
+                    if (double.TryParse(worksheet.Cells[i, 1].Value.ToString(), out double value))
                     {
                         data.Add(value);
                     }
@@ -736,11 +729,11 @@ namespace WpfApp1.OlimpSort
 
             var patterns = new[]
             {
-        @"\/spreadsheets\/d\/([a-zA-Z0-9-_]+)",
-        @"\/d\/([a-zA-Z0-9-_]+)",
-        @"key=([a-zA-Z0-9-_]+)",
-        @"id=([a-zA-Z0-9-_]+)"
-    };
+                @"\/spreadsheets\/d\/([a-zA-Z0-9-_]+)",
+                @"\/d\/([a-zA-Z0-9-_]+)",
+                @"key=([a-zA-Z0-9-_]+)",
+                @"id=([a-zA-Z0-9-_]+)"
+            };
 
             foreach (var pattern in patterns)
             {
@@ -756,14 +749,13 @@ namespace WpfApp1.OlimpSort
 
         private void ProcessGoogleSheetsData(IList<IList<object>> values)
         {
-            var data = new List<int>();
+            var data = new List<double>();
 
-            // Читаем данные из первого столбца
-            for (int i = 0; i < values.Count && i < 100; i++) // ограничение на 100 элементов
+            for (int i = 0; i < values.Count && i < 100; i++)
             {
                 if (values[i].Count > 0 && values[i][0] != null)
                 {
-                    if (int.TryParse(values[i][0].ToString(), out int value))
+                    if (double.TryParse(values[i][0].ToString(), out double value))
                     {
                         data.Add(value);
                     }
@@ -806,4 +798,4 @@ namespace WpfApp1.OlimpSort
             }
         }
     }
-}   
+}

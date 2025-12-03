@@ -10,7 +10,7 @@ namespace WpfApp1.OlimpSort
         public TimeSpan Time { get; set; }
         public int Iterations { get; set; }
         public bool IsCompleted { get; set; } = true;
-        public List<int> SortedArray { get; set; }
+        public List<double> SortedArray { get; set; }
         public List<ColorInfo> ColorInfo { get; set; }
     }
 
@@ -18,19 +18,18 @@ namespace WpfApp1.OlimpSort
     {
         private static Random random = new Random();
 
-        public static SortingResult BubbleSort(List<int> array, bool ascending = true, int maxIterations = int.MaxValue)
+        public static SortingResult BubbleSort(List<double> array, bool ascending = true, int maxIterations = int.MaxValue)
         {
             var stopwatch = Stopwatch.StartNew();
             int iterations = 0;
             int n = array.Count;
-            var resultArray = new List<int>(array);
+            var resultArray = new List<double>(array);
             var colors = CreateDefaultColors(n);
 
             for (int i = 0; i < n - 1 && iterations < maxIterations; i++)
             {
                 for (int j = 0; j < n - i - 1; j++)
                 {
-                    // Обновляем цвета для визуализации
                     UpdateColors(colors, j, j + 1, Brushes.Red);
 
                     bool shouldSwap = ascending ?
@@ -39,12 +38,10 @@ namespace WpfApp1.OlimpSort
 
                     if (shouldSwap)
                     {
-                        // Своп элементов
-                        int temp = resultArray[j];
+                        double temp = resultArray[j];
                         resultArray[j] = resultArray[j + 1];
                         resultArray[j + 1] = temp;
 
-                        // Подсвечиваем swapped элементы
                         UpdateColors(colors, j, j + 1, Brushes.Green);
                     }
                     else
@@ -52,10 +49,9 @@ namespace WpfApp1.OlimpSort
                         UpdateColors(colors, j, j + 1, Brushes.Orange);
                     }
                 }
-                iterations++; // Одна итерация = один полный проход
+                iterations++;
             }
 
-            // Финальная раскраска - все отсортировано
             SetAllColors(colors, Brushes.LightGreen);
 
             stopwatch.Stop();
@@ -69,20 +65,19 @@ namespace WpfApp1.OlimpSort
             };
         }
 
-        public static SortingResult InsertionSort(List<int> array, bool ascending = true, int maxIterations = int.MaxValue)
+        public static SortingResult InsertionSort(List<double> array, bool ascending = true, int maxIterations = int.MaxValue)
         {
             var stopwatch = Stopwatch.StartNew();
             int iterations = 0;
             int n = array.Count;
-            var resultArray = new List<int>(array);
+            var resultArray = new List<double>(array);
             var colors = CreateDefaultColors(n);
 
             for (int i = 1; i < n && iterations < maxIterations; i++)
             {
-                int key = resultArray[i];
+                double key = resultArray[i];
                 int j = i - 1;
 
-                // Подсвечиваем текущий элемент
                 colors[i].Color = Brushes.Red;
 
                 while (j >= 0 && (
@@ -92,7 +87,6 @@ namespace WpfApp1.OlimpSort
                 {
                     resultArray[j + 1] = resultArray[j];
 
-                    // Обновляем цвета при сдвиге
                     colors[j].Color = Brushes.Orange;
                     colors[j + 1].Color = Brushes.Green;
 
@@ -102,16 +96,14 @@ namespace WpfApp1.OlimpSort
 
                 resultArray[j + 1] = key;
 
-                // Обновляем цвета для отсортированной части
                 for (int k = 0; k <= i; k++)
                 {
                     colors[k].Color = Brushes.LightGreen;
                 }
 
-                iterations++; // Одна итерация = одна вставка элемента
+                iterations++;
             }
 
-            // Финальная раскраска
             SetAllColors(colors, Brushes.LightGreen);
 
             stopwatch.Stop();
@@ -125,11 +117,11 @@ namespace WpfApp1.OlimpSort
             };
         }
 
-        public static SortingResult ShakerSort(List<int> array, bool ascending = true, int maxIterations = int.MaxValue)
+        public static SortingResult ShakerSort(List<double> array, bool ascending = true, int maxIterations = int.MaxValue)
         {
             var stopwatch = Stopwatch.StartNew();
             int iterations = 0;
-            var resultArray = new List<int>(array);
+            var resultArray = new List<double>(array);
             var colors = CreateDefaultColors(resultArray.Count);
 
             int left = 0;
@@ -137,7 +129,6 @@ namespace WpfApp1.OlimpSort
 
             while (left <= right && iterations < maxIterations)
             {
-                // Проход слева направо
                 for (int i = left; i < right; i++)
                 {
                     UpdateColors(colors, i, i + 1, Brushes.Red);
@@ -148,7 +139,7 @@ namespace WpfApp1.OlimpSort
 
                     if (shouldSwap)
                     {
-                        int temp = resultArray[i];
+                        double temp = resultArray[i];
                         resultArray[i] = resultArray[i + 1];
                         resultArray[i + 1] = temp;
 
@@ -157,7 +148,6 @@ namespace WpfApp1.OlimpSort
                 }
                 right--;
 
-                // Проход справа налево
                 for (int i = right; i > left; i--)
                 {
                     UpdateColors(colors, i - 1, i, Brushes.Red);
@@ -168,7 +158,7 @@ namespace WpfApp1.OlimpSort
 
                     if (shouldSwap)
                     {
-                        int temp = resultArray[i];
+                        double temp = resultArray[i];
                         resultArray[i] = resultArray[i - 1];
                         resultArray[i - 1] = temp;
 
@@ -177,10 +167,9 @@ namespace WpfApp1.OlimpSort
                 }
                 left++;
 
-                iterations++; // Одна итерация = один проход в обе стороны
+                iterations++;
             }
 
-            // Финальная раскраска
             SetAllColors(colors, Brushes.LightGreen);
 
             stopwatch.Stop();
@@ -194,16 +183,15 @@ namespace WpfApp1.OlimpSort
             };
         }
 
-        public static SortingResult QuickSort(List<int> array, bool ascending = true, int maxIterations = int.MaxValue)
+        public static SortingResult QuickSort(List<double> array, bool ascending = true, int maxIterations = int.MaxValue)
         {
             var stopwatch = Stopwatch.StartNew();
             int iterations = 0;
-            var resultArray = new List<int>(array);
+            var resultArray = new List<double>(array);
             var colors = CreateDefaultColors(resultArray.Count);
 
             QuickSortRecursive(resultArray, 0, resultArray.Count - 1, ascending, colors, ref iterations, maxIterations);
 
-            // Финальная раскраска
             SetAllColors(colors, Brushes.LightGreen);
 
             stopwatch.Stop();
@@ -217,7 +205,7 @@ namespace WpfApp1.OlimpSort
             };
         }
 
-        private static void QuickSortRecursive(List<int> array, int low, int high, bool ascending, List<ColorInfo> colors, ref int iterations, int maxIterations)
+        private static void QuickSortRecursive(List<double> array, int low, int high, bool ascending, List<ColorInfo> colors, ref int iterations, int maxIterations)
         {
             if (low < high && iterations < maxIterations)
             {
@@ -232,10 +220,10 @@ namespace WpfApp1.OlimpSort
             }
         }
 
-        private static int Partition(List<int> array, int low, int high, bool ascending, List<ColorInfo> colors, ref int iterations, int maxIterations)
+        private static int Partition(List<double> array, int low, int high, bool ascending, List<ColorInfo> colors, ref int iterations, int maxIterations)
         {
-            int pivot = array[high];
-            colors[high].Color = Brushes.Purple; // Опорный элемент
+            double pivot = array[high];
+            colors[high].Color = Brushes.Purple;
 
             int i = low - 1;
 
@@ -251,8 +239,7 @@ namespace WpfApp1.OlimpSort
                 {
                     i++;
 
-                    // Своп элементов
-                    int temp = array[i];
+                    double temp = array[i];
                     array[i] = array[j];
                     array[j] = temp;
 
@@ -260,7 +247,6 @@ namespace WpfApp1.OlimpSort
                     if (i != j) colors[j].Color = Brushes.Orange;
                 }
 
-                // Сбрасываем цвета неактивных элементов
                 for (int k = low; k <= high; k++)
                 {
                     if (k != j && k != i && k != high && colors[k].Color != Brushes.Green)
@@ -272,7 +258,7 @@ namespace WpfApp1.OlimpSort
 
             if (iterations < maxIterations)
             {
-                int temp1 = array[i + 1];
+                double temp1 = array[i + 1];
                 array[i + 1] = array[high];
                 array[high] = temp1;
             }
@@ -283,11 +269,11 @@ namespace WpfApp1.OlimpSort
             return i + 1;
         }
 
-        public static SortingResult BogoSort(List<int> array, bool ascending = true, int maxIterations = 10000)
+        public static SortingResult BogoSort(List<double> array, bool ascending = true, int maxIterations = 10000)
         {
             var stopwatch = Stopwatch.StartNew();
             int iterations = 0;
-            var resultArray = new List<int>(array);
+            var resultArray = new List<double>(array);
             var colors = CreateDefaultColors(resultArray.Count);
 
             while (!IsSorted(resultArray, ascending) && iterations < maxIterations)
@@ -295,11 +281,9 @@ namespace WpfApp1.OlimpSort
                 iterations++;
                 Shuffle(resultArray);
 
-                // Раскрашиваем при перемешивании
                 SetAllColors(colors, Brushes.Orange);
             }
 
-            // Финальная раскраска
             SetAllColors(colors, IsSorted(resultArray, ascending) ? Brushes.LightGreen : Brushes.Red);
 
             stopwatch.Stop();
@@ -313,7 +297,7 @@ namespace WpfApp1.OlimpSort
             };
         }
 
-        private static bool IsSorted(List<int> array, bool ascending)
+        private static bool IsSorted(List<double> array, bool ascending)
         {
             for (int i = 0; i < array.Count - 1; i++)
             {
@@ -325,19 +309,18 @@ namespace WpfApp1.OlimpSort
             return true;
         }
 
-        private static void Shuffle(List<int> array)
+        private static void Shuffle(List<double> array)
         {
             int n = array.Count;
             for (int i = 0; i < n; i++)
             {
                 int j = random.Next(i, n);
-                int temp = array[i];
+                double temp = array[i];
                 array[i] = array[j];
                 array[j] = temp;
             }
         }
 
-        // Вспомогательные методы для работы с цветами
         private static List<ColorInfo> CreateDefaultColors(int count)
         {
             var colors = new List<ColorInfo>();

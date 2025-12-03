@@ -8,8 +8,8 @@ namespace WpfApp1.OlimpSort
     public class SortAlgorithm
     {
         public string Name { get; set; }
-        public Func<List<int>, bool, int, SortingResult> SortFunction { get; set; }
-        public List<int> CurrentData { get; set; }
+        public Func<List<double>, bool, int, SortingResult> SortFunction { get; set; }
+        public List<double> CurrentData { get; set; }
         public bool IsAscending { get; set; }
         public Stopwatch Timer { get; set; } = new Stopwatch();
     }
@@ -22,7 +22,7 @@ namespace WpfApp1.OlimpSort
 
     public class VisualizationElement
     {
-        public int Value { get; set; }
+        public double Value { get; set; }
         public double Height { get; set; }
         public Brush Color { get; set; }
     }

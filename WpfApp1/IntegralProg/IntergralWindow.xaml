@@ -1,0 +1,229 @@
+﻿<Window x:Class="WpfApp1.IntegralProg.IntergralWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:oxy="http://oxyplot.org/wpf"
+        mc:Ignorable="d"
+        Title="IntegralProg - Вычисление определенного интеграла" 
+        Height="800" Width="1100"
+        WindowStartupLocation="CenterScreen"
+        Closing="Window_Closing">
+
+    <Window.Background>
+        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#ebf2fa" Offset="0.0" />
+            <GradientStop Color="#e4edf6" Offset="0.6" />
+            <GradientStop Color="#dae3f0" Offset="1.0" />
+        </LinearGradientBrush>
+    </Window.Background>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Menu -->
+        <Menu Grid.Row="0">
+            <MenuItem Header="Файл">
+                <MenuItem Header="Рассчитать" Click="Calculate_Click"/>
+                <MenuItem Header="Следующий шаг" Click="NextStep_Click" Name="miNextStep"/>
+                <MenuItem Header="Сбросить итерации" Click="ResetSteps_Click"/>
+                <MenuItem Header="Очистить всё" Click="ClearAll_Click"/>
+                <Separator/>
+                <MenuItem Header="Выход" Click="Exit_Click"/>
+            </MenuItem>
+            <MenuItem Header="Настройки">
+                <MenuItem Header="Автоматический выбор N" IsCheckable="True" IsChecked="True" 
+                          Name="miAutoN" Click="AutoN_Click"/>
+                <MenuItem Header="Показать сетку" IsCheckable="True" IsChecked="True" 
+                          Name="miShowGrid" Click="ShowGrid_Click"/>
+                <Separator/>
+                <MenuItem Header="Цвет графика функции">
+                    <MenuItem Header="Синий" Click="ColorFunctionBlue_Click"/>
+                    <MenuItem Header="Красный" Click="ColorFunctionRed_Click"/>
+                    <MenuItem Header="Зеленый" Click="ColorFunctionGreen_Click"/>
+                </MenuItem>
+            </MenuItem>
+            <MenuItem Header="Справка">
+                <MenuItem Header="Синтаксис функций" Click="Help_Click"/>
+                <MenuItem Header="О методах" Click="AboutMethods_Click"/>
+                <MenuItem Header="О программе" Click="AboutProgram_Click"/>
+            </MenuItem>
+        </Menu>
+
+        <!-- Input parameters -->
+        <GroupBox Grid.Row="1" Header="Параметры интеграла ∫ₐᵇ f(x)dx" Margin="10,5" Padding="10">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Функция -->
+                <Label Grid.Row="0" Grid.Column="0" Content="Функция f(x):" Margin="5"/>
+                <TextBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="3" Name="txtFunction" Margin="5"
+                         Text="sin(x)" ToolTip="Введите математическое выражение функции"/>
+
+                <!-- Границы -->
+                <Label Grid.Row="1" Grid.Column="0" Content="Нижний предел a:" Margin="5"/>
+                <TextBox Grid.Row="1" Grid.Column="1" Name="txtA" Margin="5" Text="0" Width="120"/>
+
+                <Label Grid.Row="1" Grid.Column="2" Content="Верхний предел b:" Margin="5"/>
+                <TextBox Grid.Row="1" Grid.Column="3" Name="txtB" Margin="81,5,192,5" Text="3.14159"/>
+
+                <!-- Точность и N -->
+                <Label Grid.Row="2" Grid.Column="0" Content="Точность ε:" Margin="5"/>
+                <TextBox Grid.Row="2" Grid.Column="1" Name="txtEpsilon" Margin="5" Text="0.0001" Width="120"/>
+
+                <Label Grid.Row="2" Grid.Column="2" Content="Кол-во разбиений N:" Margin="5"/>
+                <Grid Grid.Row="2" Grid.Column="3" Margin="5">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBox Name="txtN" Text="100" Margin="75,0,51,0"/>
+                    <TextBlock Grid.Column="1" Text="(чётное для Симпсона)" Margin="5,0" 
+                               Foreground="Gray" VerticalAlignment="Center"/>
+                </Grid>
+
+                <!-- Выбор методов -->
+                <StackPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="4" Orientation="Horizontal" Margin="5">
+                    <TextBlock Text="Методы:" Margin="5,0" VerticalAlignment="Center"/>
+
+                    <CheckBox Name="cbRectLeft" Content="Прямоугольники (лев.)" Margin="10,0" 
+                              ToolTip="Метод левых прямоугольников" IsChecked="True"/>
+                    <CheckBox Name="cbRectRight" Content="Прямоугольники (прав.)" Margin="10,0"
+                              ToolTip="Метод правых прямоугольников"/>
+                    <CheckBox Name="cbRectMid" Content="Прямоугольники (сред.)" Margin="10,0"
+                              ToolTip="Метод средних прямоугольников"/>
+
+                    <CheckBox Name="cbTrapezoid" Content="Трапеций" Margin="10,0" IsChecked="True"
+                              ToolTip="Метод трапеций"/>
+
+                    <CheckBox Name="cbSimpson" Content="Симпсона" Margin="10,0" IsChecked="True"
+                              ToolTip="Метод парабол (Симпсона)"/>
+                </StackPanel>
+
+                <!-- Кнопки управления -->
+                <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="4" 
+                            Orientation="Horizontal" Margin="5" HorizontalAlignment="Center">
+                    <Button Name="btnCalculate" Content="Рассчитать" Margin="5,0" 
+                            Width="120" Click="Calculate_Click" Background="#4CAF50" Foreground="White"/>
+                    <Button Name="btnStepByStep" Content="Пошагово" Margin="5,0" 
+                            Width="100" Click="StartStepByStep_Click"/>
+                    <Button Name="btnNextStep" Content="Следующий шаг" Margin="5,0" 
+                            Width="120" Click="NextStep_Click" IsEnabled="False"/>
+                    <Button Name="btnResetSteps" Content="Сбросить итерации" Margin="5,0" 
+                            Width="120" Click="ResetSteps_Click"/>
+                    <Button Name="btnClear" Content="Очистить" Margin="5,0" 
+                            Width="80" Click="ClearAll_Click"/>
+                </StackPanel>
+            </Grid>
+        </GroupBox>
+
+        <!-- Results and Chart -->
+        <Grid Grid.Row="2" Margin="10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="300"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Chart -->
+            <GroupBox Grid.Column="0" Header="График функции и разбиения" Margin="0,0,5,0" Padding="10">
+                <oxy:PlotView Name="plotView" Margin="0"/>
+            </GroupBox>
+
+            <!-- Results -->
+            <GroupBox Grid.Column="1" Header="Результаты вычислений" Margin="5,0,0,0" Padding="10">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <!-- Информация об итерациях -->
+                        <TextBlock Name="lblStepInfo" Margin="0,0,0,10" FontWeight="Bold" 
+                                   Foreground="DarkBlue" TextWrapping="Wrap"/>
+
+                        <!-- Результаты методов -->
+                        <StackPanel Name="spResults" Margin="0,0,0,15">
+                            <TextBlock Text="Результаты методов:" FontWeight="Bold" Margin="0,0,0,5"/>
+                        </StackPanel>
+
+                        <!-- Сравнительная таблица -->
+                        <Border BorderBrush="LightGray" BorderThickness="1" Margin="0,0,0,10" 
+                                Background="White" Padding="5">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Метод" FontWeight="Bold"/>
+                                <TextBlock Grid.Row="0" Grid.Column="1" Text="Значение" FontWeight="Bold"/>
+
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Прямоуг. (лев.):" Margin="0,2"/>
+                                <TextBlock Grid.Row="1" Grid.Column="1" Name="tbRectLeft" Text="-"/>
+
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Прямоуг. (прав.):" Margin="0,2"/>
+                                <TextBlock Grid.Row="2" Grid.Column="1" Name="tbRectRight" Text="-"/>
+
+                                <TextBlock Grid.Row="3" Grid.Column="0" Text="Прямоуг. (сред.):" Margin="0,2"/>
+                                <TextBlock Grid.Row="3" Grid.Column="1" Name="tbRectMid" Text="-"/>
+
+                                <TextBlock Grid.Row="4" Grid.Column="0" Text="Трапеций:" Margin="0,2"/>
+                                <TextBlock Grid.Row="4" Grid.Column="1" Name="tbTrapezoid" Text="-"/>
+
+                                <TextBlock Grid.Row="5" Grid.Column="0" Text="Симпсона:" Margin="0,2"/>
+                                <TextBlock Grid.Row="5" Grid.Column="1" Name="tbSimpson" Text="-"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Оптимальный результат -->
+                        <Border BorderBrush="#4CAF50" BorderThickness="2" Background="#F1F8E9" Padding="10">
+                            <StackPanel>
+                                <TextBlock Text="Оптимальный результат:" FontWeight="Bold" 
+                                           Foreground="#2E7D32" Margin="0,0,0,5"/>
+                                <TextBlock Name="tbOptimalMethod" Text="Метод: -" Margin="0,0,0,2"/>
+                                <TextBlock Name="tbOptimalValue" Text="Значение: -" Margin="0,0,0,2"/>
+                                <TextBlock Name="tbOptimalN" Text="Разбиений: -" Margin="0,0,0,2"/>
+                                <TextBlock Name="tbOptimalError" Text="Погрешность: -"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </GroupBox>
+        </Grid>
+
+        <!-- Status Bar -->
+        <StatusBar Grid.Row="3" Background="#E3F2FD">
+            <StatusBarItem>
+                <TextBlock Name="lblStatus" Text="Готов к работе"/>
+            </StatusBarItem>
+            <Separator/>
+            <StatusBarItem>
+                <TextBlock Name="lblTime" Text="Время: 0 мс"/>
+            </StatusBarItem>
+            <Separator/>
+            <StatusBarItem>
+                <TextBlock Name="lblIntegralBounds" Text="∫[a,b] f(x)dx"/>
+            </StatusBarItem>
+        </StatusBar>
+    </Grid>
+</Window>

@@ -8,6 +8,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using WpfApp1.IntegralProg;
 using WpfApp1.OlimpSort;
 using WpfApp1.SLAY;
 
@@ -70,6 +71,14 @@ namespace WpfApp1
             objOlimpSort.Closed += Window_Closed;
             this.Hide();
             objOlimpSort.Show();
+        }
+
+        private void Button_Click_Integral(object sender, RoutedEventArgs e)
+        {
+            IntergralWindow objIntergral = new IntergralWindow();
+            objIntergral.Closed += Window_Closed;
+            this.Hide();
+            objIntergral.Show();
         }
     }
 }
