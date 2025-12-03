@@ -8,7 +8,6 @@ namespace WpfApp1.IntegralProg
     public class IntegralCalculator
     {
         private readonly Expression _expression;
-
         public IntegralCalculator(string function)
         {
             _expression = new Expression(function.ToLower(), EvaluateOptions.IgnoreCase);
@@ -40,66 +39,93 @@ namespace WpfApp1.IntegralProg
             }
         }
 
-        public Dictionary<IntegrationMethod, IntegrationResult> CalculateIntegral(
-            double a, double b, double epsilon, int initialN,
-            List<IntegrationMethod> methods, bool autoSelectN)
+        // ФИКСИРОВАННОЕ N - используем точно указанное пользователем количество разбиений
+        public Dictionary<IntegrationMethod, IntegrationResult> CalculateWithFixedN(
+            double a, double b, int n, List<IntegrationMethod> methods)
         {
             var results = new Dictionary<IntegrationMethod, IntegrationResult>();
 
             foreach (var method in methods)
             {
-                var result = new IntegrationResult { Method = method };
+                double value;
+                int actualN = n;
 
-                if (autoSelectN)
+                // Для метода Симпсона делаем N четным
+                if (method == IntegrationMethod.Simpson && n % 2 != 0)
                 {
-                    // Автоматический подбор N
-                    result = AutoSelectN(a, b, epsilon, method, initialN);
-                }
-                else
-                {
-                    // Фиксированное N
-                    result.Value = CalculateWithFixedN(a, b, initialN, method);
-                    result.Iterations = initialN;
-                    result.ErrorEstimate = EstimateError(a, b, initialN, method, result.Value);
+                    actualN = n + 1; // Делаем четным
                 }
 
+                value = CalculateWithExactN(a, b, actualN, method);
+
+                // Оцениваем погрешность (сравнивая с удвоенным N)
+                double errorEstimate = EstimateError(a, b, actualN, method, value);
+
+                results[method] = new IntegrationResult
+                {
+                    Method = method,
+                    Value = value,
+                    Iterations = actualN,
+                    ErrorEstimate = errorEstimate
+                };
+            }
+
+            return results;
+        }
+
+        // АВТОМАТИЧЕСКИЙ выбор N - находим оптимальное N для заданной точности
+        public Dictionary<IntegrationMethod, IntegrationResult> CalculateWithAutoN(
+            double a, double b, double epsilon, int initialN, List<IntegrationMethod> methods)
+        {
+            var results = new Dictionary<IntegrationMethod, IntegrationResult>();
+
+            foreach (var method in methods)
+            {
+                var result = AutoSelectNForMethod(a, b, epsilon, initialN, method);
                 results[method] = result;
             }
 
             return results;
         }
 
-        private IntegrationResult AutoSelectN(double a, double b, double epsilon, IntegrationMethod method, int initialN)
+        private IntegrationResult AutoSelectNForMethod(double a, double b, double epsilon, int initialN, IntegrationMethod method)
         {
+            int n = Math.Max(2, initialN);
+            if (method == IntegrationMethod.Simpson && n % 2 != 0)
+            {
+                n++; // Делаем четным для Симпсона
+            }
+
+            double prevValue = CalculateWithExactN(a, b, n, method);
+            double currentValue = prevValue; // Инициализируем значением prevValue
+
             var result = new IntegrationResult { Method = method };
-            int n = initialN;
-            double prevValue = 0;
-            double currentValue = 0;
+            result.History.Add(prevValue);
+
             int maxIterations = 20;
 
-            for (int i = 0; i < maxIterations; i++)
+            for (int i = 1; i <= maxIterations; i++)
             {
-                currentValue = CalculateWithFixedN(a, b, n, method);
+                n *= 2; // Удваиваем количество разбиений
+                if (method == IntegrationMethod.Simpson && n % 2 != 0)
+                {
+                    n++; // Делаем четным
+                }
+
+                currentValue = CalculateWithExactN(a, b, n, method);
                 result.History.Add(currentValue);
 
-                if (i > 0)
-                {
-                    double error = Math.Abs(currentValue - prevValue);
-                    result.ErrorEstimate = error;
+                double error = Math.Abs(currentValue - prevValue);
 
-                    if (error < epsilon || n > 1000000)
-                    {
-                        result.Value = currentValue;
-                        result.Iterations = n;
-                        return result;
-                    }
+                if (error < epsilon || n > 1000000)
+                {
+                    result.Value = currentValue;
+                    result.Iterations = n;
+                    result.ErrorEstimate = error;
+                    return result;
                 }
 
                 prevValue = currentValue;
-                n *= 2; // Удваиваем количество разбиений
-
-                // Для Симпсона делаем четным
-                if (method == IntegrationMethod.Simpson && n % 2 != 0) n++;
             }
 
             result.Value = currentValue;
@@ -108,12 +134,8 @@ namespace WpfApp1.IntegralProg
             return result;
         }
 
-        private double CalculateWithFixedN(double a, double b, int n, IntegrationMethod method)
+        private double CalculateWithExactN(double a, double b, int n, IntegrationMethod method)
         {
-            // Для Симпсона делаем четным
-            if (method == IntegrationMethod.Simpson && n % 2 != 0)
-                n++;
-
             double h = (b - a) / n;
 
             return method switch
@@ -123,7 +145,7 @@ namespace WpfApp1.IntegralProg
                 IntegrationMethod.RectangleMidpoint => RectangleMidpoint(a, h, n),
                 IntegrationMethod.Trapezoidal => Trapezoidal(a, b, h, n),
                 IntegrationMethod.Simpson => Simpson(a, b, h, n),
-                _ => 0
+                _ => throw new ArgumentException("Неизвестный метод интегрирования")
             };
         }
 
@@ -175,23 +197,38 @@ namespace WpfApp1.IntegralProg
 
         private double Simpson(double a, double b, double h, int n)
         {
-            double sum = CalculateFunction(a) + CalculateFunction(b);
+            if (n < 2)
+            {
+                throw new ArgumentException("Для метода Симпсона N должно быть не менее 2");
+            }
 
-            // Нечетные точки
+            if (n % 2 != 0)
+            {
+                throw new ArgumentException("Для метода Симпсона N должно быть четным");
+            }
+
+            // Формула Симпсона строго по математике:
+            // ∫[a,b] f(x)dx ≈ (h/3)[f(x0) + 4∑f(x_нечет) + 2∑f(x_чет) + f(xn)]
+
+            double sum = CalculateFunction(a); // f(x0)
+
+            // Сумма нечетных индексов (умножается на 4)
             for (int i = 1; i < n; i += 2)
             {
                 double x = a + i * h;
                 sum += 4 * CalculateFunction(x);
             }
 
-            // Четные точки
+            // Сумма четных индексов (умножается на 2)
             for (int i = 2; i < n; i += 2)
             {
                 double x = a + i * h;
                 sum += 2 * CalculateFunction(x);
             }
 
-            return h * sum / 3.0;
+            sum += CalculateFunction(b); // f(xn)
+
+            return (h / 3.0) * sum;
         }
 
         private double EstimateError(double a, double b, int n, IntegrationMethod method, double value)
@@ -201,7 +238,7 @@ namespace WpfApp1.IntegralProg
             if (method == IntegrationMethod.Simpson && doubleN % 2 != 0)
                 doubleN++;
 
-            double doubleValue = CalculateWithFixedN(a, b, doubleN, method);
+            double doubleValue = CalculateWithExactN(a, b, doubleN, method);
             return Math.Abs(doubleValue - value);
         }
 
