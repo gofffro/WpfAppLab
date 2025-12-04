@@ -1,18 +1,19 @@
-﻿using System;
+﻿using Google.Apis.Services;
+using Google.Apis.Sheets.v4;
+using Google.Apis.Sheets.v4.Data;
+using Microsoft.Win32;
+using OfficeOpenXml;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Globalization;
+using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Threading;
-using Microsoft.Win32;
-using System.IO;
-using System.Diagnostics;
-using OfficeOpenXml;
-using Google.Apis.Sheets.v4;
-using Google.Apis.Sheets.v4.Data;
-using Google.Apis.Services;
-using System.Threading.Tasks;
 
 namespace WpfApp1.OlimpSort
 {
@@ -45,26 +46,53 @@ namespace WpfApp1.OlimpSort
             InputDataGrid.Columns.Clear();
             InputDataGrid.ItemsSource = null;
 
-            InputDataGrid.Columns.Add(new DataGridTextColumn()
-            {
-                Header = "Значение",
-                Binding = new System.Windows.Data.Binding("[0]")
-            });
-
-            var data = new List<List<double>>();
+            // Создаем список для хранения данных
+            var data = new List<InputDataItem>();
             for (int i = 0; i < arraySize; i++)
             {
-                data.Add(new List<double> { 0.0 });
+                data.Add(new InputDataItem { Value = "0.0" });
             }
             InputDataGrid.ItemsSource = data;
+        }
 
-            ResultDataGrid.Columns.Clear();
-            ResultDataGrid.ItemsSource = null;
-            ResultDataGrid.Columns.Add(new DataGridTextColumn()
+        private void InputDataGrid_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
+        {
+            if (e.EditAction == DataGridEditAction.Commit)
             {
-                Header = "Значение",
-                Binding = new System.Windows.Data.Binding("[0]")
-            });
+                var textBox = e.EditingElement as TextBox;
+                if (textBox != null)
+                {
+                    string input = textBox.Text;
+
+                    // Заменяем запятую на точку для универсального парсинга
+                    string normalizedInput = input.Replace(',', '.');
+
+                    // Проверяем, является ли ввод валидным числом
+                    if (!double.TryParse(normalizedInput, NumberStyles.Any, CultureInfo.InvariantCulture, out double _))
+                    {
+                        // Если не валидно, отменяем изменение и показываем сообщение
+                        e.Cancel = true;
+
+                        // Восстанавливаем старое значение
+                        var dataItem = e.Row.Item as InputDataItem;
+                        if (dataItem != null)
+                        {
+                            textBox.Text = dataItem.Value;
+                        }
+
+                        MessageBox.Show($"Неверный формат числа: {input}\nИспользуйте формат 1.1 или 1,1", "Ошибка ввода");
+                    }
+                    else
+                    {
+                        // Обновляем значение с нормализованным форматом
+                        var dataItem = e.Row.Item as InputDataItem;
+                        if (dataItem != null)
+                        {
+                            dataItem.Value = normalizedInput;
+                        }
+                    }
+                }
+            }
         }
 
         private void InitializeVisualization()
@@ -108,7 +136,7 @@ namespace WpfApp1.OlimpSort
         {
             try
             {
-                var items = InputDataGrid.ItemsSource as List<List<double>>;
+                var items = InputDataGrid.ItemsSource as IEnumerable<InputDataItem>;
                 if (items == null)
                 {
                     MessageBox.Show("Данные не загружены", "Ошибка");
@@ -116,21 +144,27 @@ namespace WpfApp1.OlimpSort
                 }
 
                 var data = new List<double>();
-                for (int i = 0; i < arraySize && i < items.Count; i++)
+                int index = 0;
+
+                foreach (var item in items)
                 {
-                    if (items[i] == null || items[i].Count == 0)
+                    index++;
+
+                    if (string.IsNullOrWhiteSpace(item.Value))
                     {
-                        MessageBox.Show($"Не заполнена строка {i + 1}", "Ошибка");
+                        MessageBox.Show($"Не заполнена строка {index}", "Ошибка");
                         return null;
                     }
 
-                    if (double.TryParse(items[i][0].ToString(), out double value))
+                    // Нормализуем и парсим число
+                    string normalizedValue = item.Value.Replace(',', '.');
+                    if (double.TryParse(normalizedValue, NumberStyles.Any, CultureInfo.InvariantCulture, out double value))
                     {
                         data.Add(value);
                     }
                     else
                     {
-                        MessageBox.Show($"Неверный формат числа в строке {i + 1}", "Ошибка");
+                        MessageBox.Show($"Неверный формат числа в строке {index}: {item.Value}\nИспользуйте формат 1.1 или 1,1", "Ошибка");
                         return null;
                     }
                 }
@@ -150,12 +184,13 @@ namespace WpfApp1.OlimpSort
             }
         }
 
+
         private void SetInputData(List<double> data)
         {
-            var dataList = new List<List<double>>();
+            var dataList = new List<InputDataItem>();
             foreach (var value in data)
             {
-                dataList.Add(new List<double> { value });
+                dataList.Add(new InputDataItem { Value = value.ToString(CultureInfo.InvariantCulture) });
             }
             InputDataGrid.ItemsSource = dataList;
         }
@@ -578,23 +613,38 @@ namespace WpfApp1.OlimpSort
                 }
 
                 var worksheet = package.Workbook.Worksheets[0];
-                var data = new List<double>();
+                var dataList = new List<InputDataItem>();
 
                 for (int i = 1; i <= 100; i++)
                 {
                     if (worksheet.Cells[i, 1].Value == null) break;
-                    if (double.TryParse(worksheet.Cells[i, 1].Value.ToString(), out double value))
+
+                    double value;
+                    if (double.TryParse(worksheet.Cells[i, 1].Value.ToString(), out value))
                     {
-                        data.Add(value);
+                        dataList.Add(new InputDataItem { Value = value.ToString(CultureInfo.InvariantCulture) });
+                    }
+                    else
+                    {
+                        // Пробуем заменить запятую на точку
+                        string normalized = worksheet.Cells[i, 1].Value.ToString().Replace(',', '.');
+                        if (double.TryParse(normalized, NumberStyles.Any, CultureInfo.InvariantCulture, out value))
+                        {
+                            dataList.Add(new InputDataItem { Value = normalized });
+                        }
                     }
                 }
 
-                if (data.Count > 0)
+                if (dataList.Count > 0)
                 {
-                    arraySize = data.Count;
+                    arraySize = dataList.Count;
                     ArraySizeTextBox.Text = arraySize.ToString();
-                    SetInputData(data);
-                    UpdateVisualization(data);
+                    InputDataGrid.ItemsSource = dataList;
+
+                    // Обновляем визуализацию
+                    var numericData = dataList.Select(item =>
+                        double.Parse(item.Value.Replace(',', '.'), CultureInfo.InvariantCulture)).ToList();
+                    UpdateVisualization(numericData);
                 }
             }
         }
