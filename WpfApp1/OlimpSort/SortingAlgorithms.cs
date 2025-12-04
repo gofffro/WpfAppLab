@@ -126,53 +126,111 @@ namespace WpfApp1.OlimpSort
 
             int left = 0;
             int right = resultArray.Count - 1;
+            bool swapped;
 
-            while (left <= right && iterations < maxIterations)
+            // Главный цикл - do-while гарантирует минимум один проход
+            do
             {
+                swapped = false; // Начинаем каждый проход с предположения, что обменов не будет
+
+                // ПРОХОД СЛЕВА НАПРАВО (как в пузырьковой сортировке)
+                int lastSwapIndex = left; // Запоминаем место последнего обмена
                 for (int i = left; i < right; i++)
                 {
+                    // Визуализация - подсвечиваем сравниваемые элементы
                     UpdateColors(colors, i, i + 1, Brushes.Red);
 
+                    // Проверяем, нужно ли менять элементы местами
                     bool shouldSwap = ascending ?
-                        resultArray[i] > resultArray[i + 1] :
-                        resultArray[i] < resultArray[i + 1];
+                        resultArray[i] > resultArray[i + 1] :  // Для сортировки по возрастанию
+                        resultArray[i] < resultArray[i + 1];   // Для сортировки по убыванию
 
                     if (shouldSwap)
                     {
+                        // Меняем элементы местами
                         double temp = resultArray[i];
                         resultArray[i] = resultArray[i + 1];
                         resultArray[i + 1] = temp;
 
+                        // Визуализация - подсвечиваем обмен
                         UpdateColors(colors, i, i + 1, Brushes.Green);
+
+                        // Отмечаем, что был обмен и запоминаем его позицию
+                        swapped = true;
+                        lastSwapIndex = i;
+                    }
+                    else
+                    {
+                        // Визуализация - элементы в правильном порядке
+                        UpdateColors(colors, i, i + 1, Brushes.Orange);
                     }
                 }
-                right--;
 
+                // Сужаем правую границу до места последнего обмена
+                // (все элементы справа уже на своих местах)
+                right = lastSwapIndex;
+
+                // Увеличиваем счетчик итераций
+                iterations++;
+
+                // Проверяем, не достигнут ли лимит итераций
+                if (iterations >= maxIterations) break;
+
+                // Если НЕ БЫЛО обменов при проходе слева направо - массив отсортирован
+                // Завершаем работу
+                if (!swapped) break;
+
+                // Сбрасываем флаг для прохода в обратном направлении
+                swapped = false;
+
+                // ПРОХОД СПРАВА НАЛЕВО (обратное направление)
+                lastSwapIndex = right; // Снова запоминаем место последнего обмена
                 for (int i = right; i > left; i--)
                 {
+                    // Визуализация - подсвечиваем сравниваемые элементы
                     UpdateColors(colors, i - 1, i, Brushes.Red);
 
+                    // Проверяем, нужно ли менять элементы местами
                     bool shouldSwap = ascending ?
-                        resultArray[i - 1] > resultArray[i] :
-                        resultArray[i - 1] < resultArray[i];
+                        resultArray[i - 1] > resultArray[i] :  // Для сортировки по возрастанию
+                        resultArray[i - 1] < resultArray[i];   // Для сортировки по убыванию
 
                     if (shouldSwap)
                     {
+                        // Меняем элементы местами
                         double temp = resultArray[i];
                         resultArray[i] = resultArray[i - 1];
                         resultArray[i - 1] = temp;
 
+                        // Визуализация - подсвечиваем обмен
                         UpdateColors(colors, i - 1, i, Brushes.Green);
+
+                        // Отмечаем, что был обмен и запоминаем его позицию
+                        swapped = true;
+                        lastSwapIndex = i;
+                    }
+                    else
+                    {
+                        // Визуализация - элементы в правильном порядке
+                        UpdateColors(colors, i - 1, i, Brushes.Orange);
                     }
                 }
-                left++;
 
+                // Сужаем левую границу до места последнего обмена
+                // (все элементы слева уже на своих местах)
+                left = lastSwapIndex;
+
+                // Увеличиваем счетчик итераций
                 iterations++;
-            }
 
+            } while (left < right && swapped && iterations < maxIterations);
+
+            // После завершения сортировки подсвечиваем все элементы зеленым
             SetAllColors(colors, Brushes.LightGreen);
 
             stopwatch.Stop();
+
+            // Возвращаем результат сортировки
             return new SortingResult
             {
                 Time = stopwatch.Elapsed,
