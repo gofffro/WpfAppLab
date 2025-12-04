@@ -543,7 +543,7 @@ namespace WpfApp1.OlimpSort
 
         private void ApplySize_Click(object sender, RoutedEventArgs e)
         {
-            if (int.TryParse(ArraySizeTextBox.Text, out int size) && size >= 2 && size <= 100)
+            if (int.TryParse(ArraySizeTextBox.Text, out int size) && size >= 2)
             {
                 arraySize = size;
                 InitializeDataGrid();
@@ -551,7 +551,7 @@ namespace WpfApp1.OlimpSort
             }
             else
             {
-                MessageBox.Show("Размер массива должен быть от 2 до 100", "Ошибка");
+                MessageBox.Show("Размер массива должен быть не менее 2", "Ошибка");
                 ArraySizeTextBox.Text = arraySize.ToString();
             }
         }
@@ -613,38 +613,26 @@ namespace WpfApp1.OlimpSort
                 }
 
                 var worksheet = package.Workbook.Worksheets[0];
-                var dataList = new List<InputDataItem>();
+                var data = new List<double>();
 
-                for (int i = 1; i <= 100; i++)
+                // Убираем ограничение for (int i = 1; i <= 100; i++)
+                // Вместо этого читаем все строки до первой пустой
+                int row = 1;
+                while (worksheet.Cells[row, 1].Value != null)
                 {
-                    if (worksheet.Cells[i, 1].Value == null) break;
-
-                    double value;
-                    if (double.TryParse(worksheet.Cells[i, 1].Value.ToString(), out value))
+                    if (double.TryParse(worksheet.Cells[row, 1].Value.ToString(), out double value))
                     {
-                        dataList.Add(new InputDataItem { Value = value.ToString(CultureInfo.InvariantCulture) });
+                        data.Add(value);
                     }
-                    else
-                    {
-                        // Пробуем заменить запятую на точку
-                        string normalized = worksheet.Cells[i, 1].Value.ToString().Replace(',', '.');
-                        if (double.TryParse(normalized, NumberStyles.Any, CultureInfo.InvariantCulture, out value))
-                        {
-                            dataList.Add(new InputDataItem { Value = normalized });
-                        }
-                    }
+                    row++;
                 }
 
-                if (dataList.Count > 0)
+                if (data.Count > 0)
                 {
-                    arraySize = dataList.Count;
+                    arraySize = data.Count;
                     ArraySizeTextBox.Text = arraySize.ToString();
-                    InputDataGrid.ItemsSource = dataList;
-
-                    // Обновляем визуализацию
-                    var numericData = dataList.Select(item =>
-                        double.Parse(item.Value.Replace(',', '.'), CultureInfo.InvariantCulture)).ToList();
-                    UpdateVisualization(numericData);
+                    SetInputData(data);
+                    UpdateVisualization(data);
                 }
             }
         }
@@ -842,7 +830,7 @@ namespace WpfApp1.OlimpSort
 
         private void ArraySizeTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            if (int.TryParse(ArraySizeTextBox.Text, out int size) && size >= 2 && size <= 100)
+            if (int.TryParse(ArraySizeTextBox.Text, out int size) && size >= 2)
             {
                 arraySize = size;
             }
