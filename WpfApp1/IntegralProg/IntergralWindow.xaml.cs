@@ -26,6 +26,9 @@ namespace WpfApp1.IntegralProg
     {
         public PlotModel PlotModel { get; set; }
         private LineSeries functionSeries;
+        private bool _drawPartitions = true;
+        private const int MAX_PARTITIONS_TO_DRAW = 50;
+        private bool _isCalculating = false;
 
         private IntegralCalculator _calculator;
         private bool _isStepByStepMode = false;
@@ -40,13 +43,19 @@ namespace WpfApp1.IntegralProg
 
             miNextStep.IsEnabled = false;
             btnNextStep.IsEnabled = false;
+
+            // Обновляем информацию о пределах
+            UpdateBoundsInfo();
+            txtA.TextChanged += (s, e) => UpdateBoundsInfo();
+            txtB.TextChanged += (s, e) => UpdateBoundsInfo();
+            txtFunction.TextChanged += (s, e) => UpdateFunctionInfo();
         }
 
         private void InitializePlotModel()
         {
             PlotModel = new PlotModel
             {
-                Title = "График функции и численное интегрирование",
+                Title = "График функции",
                 TitleColor = OxyColors.DarkBlue,
                 TextColor = OxyColors.DarkBlue,
                 PlotAreaBorderColor = OxyColors.Gray,
@@ -83,85 +92,62 @@ namespace WpfApp1.IntegralProg
             plotView.Model = PlotModel;
         }
 
-        private void Calculate_Click(object sender, RoutedEventArgs e)
+        private async void Calculate_Click(object sender, RoutedEventArgs e)
         {
+            if (_isCalculating) return;
+
             try
             {
                 if (!ValidateInput())
                     return;
 
                 ResetStepMode();
+                ShowProgress(true, "Начало вычислений...");
 
                 var stopwatch = Stopwatch.StartNew();
 
                 double a = double.Parse(txtA.Text.Replace(",", "."), CultureInfo.InvariantCulture);
                 double b = double.Parse(txtB.Text.Replace(",", "."), CultureInfo.InvariantCulture);
                 double epsilon = double.Parse(txtEpsilon.Text.Replace(",", "."), CultureInfo.InvariantCulture);
-                int n = int.Parse(txtN.Text); // ← ОБЪЯВЛЯЕМ ОДИН РАЗ
+                int maxN = int.Parse(txtN.Text);
                 string function = PreprocessFunction(txtFunction.Text);
 
                 // Обновляем статус
-                lblIntegralBounds.Text = $"∫[{a:F2}, {b:F2}] f(x)dx";
+                UpdateBoundsInfo();
+                UpdateFunctionInfo();
+                lblIntegralInfo.Text = $"∫[{a:F2}, {b:F2}] {txtFunction.Text} dx";
 
                 _calculator = new IntegralCalculator(function);
 
                 // Собираем выбранные методы
-                List<IntegrationMethod> methods = new List<IntegrationMethod>();
-                if (cbRectLeft.IsChecked == true) methods.Add(IntegrationMethod.RectangleLeft);
-                if (cbRectRight.IsChecked == true) methods.Add(IntegrationMethod.RectangleRight);
-                if (cbRectMid.IsChecked == true) methods.Add(IntegrationMethod.RectangleMidpoint);
-                if (cbTrapezoid.IsChecked == true) methods.Add(IntegrationMethod.Trapezoidal);
-                if (cbSimpson.IsChecked == true) methods.Add(IntegrationMethod.Simpson);
-
+                List<IntegrationMethod> methods = GetSelectedMethods();
                 if (methods.Count == 0)
                 {
                     MessageBox.Show("Выберите хотя бы один метод интегрирования!", "Внимание",
                                   MessageBoxButton.OK, MessageBoxImage.Warning);
+                    ShowProgress(false);
                     return;
                 }
 
-                // ПРОВЕРКА ДЛЯ СИМПСОНА ПЕРЕД autoN
-                bool autoN = miAutoN.IsChecked == true; // ← ПЕРЕМЕСТИЛИ ОБЪЯВЛЕНИЕ autoN СЮДА
+                bool autoN = miAutoN.IsChecked == true;
+                Dictionary<IntegrationMethod, IntegrationResult> results = new Dictionary<IntegrationMethod, IntegrationResult>();
 
-                if (cbSimpson.IsChecked == true)
+                ShowProgress(true, "Выполняется расчет...");
+
+                // Запускаем вычисление в отдельном потоке
+                await Task.Run(() =>
                 {
-                    if (!autoN) // Только при фиксированном N проверяем
+                    if (autoN)
                     {
-                        if (n < 2)
-                        {
-                            MessageBox.Show("Для метода Симпсона N должно быть не менее 2!", "Ошибка",
-                                          MessageBoxButton.OK, MessageBoxImage.Warning);
-                            return;
-                        }
-                        if (n % 2 != 0)
-                        {
-                            var result = MessageBox.Show("Для метода Симпсона N должно быть четным. Исправить на четное?",
-                                                       "Внимание", MessageBoxButton.YesNo, MessageBoxImage.Question);
-                            if (result == MessageBoxResult.Yes)
-                            {
-                                n = (n % 2 == 0) ? n : n + 1;
-                                txtN.Text = n.ToString();
-                            }
-                            else
-                            {
-                                return;
-                            }
-                        }
+                        // АВТОМАТИЧЕСКИЙ ВЫБОР N
+                        results = _calculator.CalculateWithAutoN(a, b, epsilon, maxN, methods);
                     }
-                }
-
-                Dictionary<IntegrationMethod, IntegrationResult> results;
-
-                if (autoN)
-                {
-                    // АВТОМАТИЧЕСКИЙ ВЫБОР N - находим оптимальное N для заданной точности
-                    results = _calculator.CalculateWithAutoN(a, b, epsilon, n, methods);
-                }
-                else
-                {
-                    // ФИКСИРОВАННОЕ N - используем введенное пользователем значение
-                    results = _calculator.CalculateWithFixedN(a, b, n, methods);
-                }
+                    else
+                    {
+                        // ФИКСИРОВАННОЕ N
+                        results = _calculator.CalculateWithFixedN(a, b, maxN, methods);
+                    }
+                });
 
                 stopwatch.Stop();
                 lblTime.Text = $"Время: {stopwatch.ElapsedMilliseconds} мс";
@@ -173,13 +159,30 @@ namespace WpfApp1.IntegralProg
                 PlotIntegration(a, b, results);
 
                 lblStatus.Text = "Вычисление завершено";
+                ShowProgress(false);
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Ошибка вычисления: {ex.Message}", "Ошибка",
                               MessageBoxButton.OK, MessageBoxImage.Error);
                 lblStatus.Text = "Ошибка вычисления";
+                ShowProgress(false);
             }
+            finally
+            {
+                _isCalculating = false;
+            }
+        }
+
+        private List<IntegrationMethod> GetSelectedMethods()
+        {
+            List<IntegrationMethod> methods = new List<IntegrationMethod>();
+            if (cbRectLeft.IsChecked == true) methods.Add(IntegrationMethod.RectangleLeft);
+            if (cbRectRight.IsChecked == true) methods.Add(IntegrationMethod.RectangleRight);
+            if (cbRectMid.IsChecked == true) methods.Add(IntegrationMethod.RectangleMidpoint);
+            if (cbTrapezoid.IsChecked == true) methods.Add(IntegrationMethod.Trapezoidal);
+            if (cbSimpson.IsChecked == true) methods.Add(IntegrationMethod.Simpson);
+            return methods;
         }
 
         private void DisplayResults(Dictionary<IntegrationMethod, IntegrationResult> results)
@@ -187,84 +190,187 @@ namespace WpfApp1.IntegralProg
             // Очищаем предыдущие результаты
             spResults.Children.Clear();
 
-            // Обновляем значения в таблице
-            tbRectLeft.Text = results.ContainsKey(IntegrationMethod.RectangleLeft) ?
-                $"{results[IntegrationMethod.RectangleLeft].Value:F6}" : "-";
-            tbRectRight.Text = results.ContainsKey(IntegrationMethod.RectangleRight) ?
-                $"{results[IntegrationMethod.RectangleRight].Value:F6}" : "-";
-            tbRectMid.Text = results.ContainsKey(IntegrationMethod.RectangleMidpoint) ?
-                $"{results[IntegrationMethod.RectangleMidpoint].Value:F6}" : "-";
-            tbTrapezoid.Text = results.ContainsKey(IntegrationMethod.Trapezoidal) ?
-                $"{results[IntegrationMethod.Trapezoidal].Value:F6}" : "-";
-            tbSimpson.Text = results.ContainsKey(IntegrationMethod.Simpson) ?
-                $"{results[IntegrationMethod.Simpson].Value:F6}" : "-";
-
-            // Находим оптимальный результат (наименьшая погрешность)
-            if (results.Count > 0)
+            // Добавляем заголовок
+            spResults.Children.Add(new TextBlock
             {
-                var optimal = results.Values.OrderBy(r => r.ErrorEstimate).First();
-                tbOptimalMethod.Text = $"Метод: {GetMethodName(optimal.Method)}";
-                tbOptimalValue.Text = $"Значение: {optimal.Value:F8}";
-                tbOptimalN.Text = $"Разбиений: {optimal.Iterations}";
-                tbOptimalError.Text = $"Погрешность: {optimal.ErrorEstimate:E2}";
+                Text = "Результаты методов:",
+                FontWeight = FontWeights.Bold,
+                Margin = new Thickness(0, 0, 0, 10),
+                FontSize = 14
+            });
 
-                // Добавляем подробные результаты
-                foreach (var result in results.Values)
+            if (results.Count == 0)
+            {
+                spResults.Children.Add(new TextBlock
                 {
-                    var panel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 2, 0, 2) };
-                    panel.Children.Add(new TextBlock
-                    {
-                        Text = $"{GetMethodName(result.Method)}: ",
-                        FontWeight = FontWeights.Bold,
-                        Width = 150
-                    });
-
-                    string autoText = "";
-                    if (miAutoN.IsChecked == true)
-                    {
-                        autoText = $"(авто N={result.Iterations}, err={result.ErrorEstimate:E2})";
-                    }
-                    else
-                    {
-                        autoText = $"(N={result.Iterations})";
-                    }
-
-                    panel.Children.Add(new TextBlock
-                    {
-                        Text = $"{result.Value:F8} {autoText}"
-                    });
-                    spResults.Children.Add(panel);
-                }
+                    Text = "Нет результатов для отображения",
+                    Foreground = Brushes.Gray,
+                    FontStyle = FontStyles.Italic
+                });
+                return;
             }
+
+            // Создаем панель для результатов
+            var resultsPanel = new StackPanel { Margin = new Thickness(0, 0, 0, 15) };
+
+            foreach (var kvp in results)
+            {
+                var result = kvp.Value;
+                var methodName = GetMethodName(result.Method);
+
+                // Создаем карточку для каждого метода
+                var card = new Border
+                {
+                    BorderBrush = new SolidColorBrush(Color.FromRgb(225, 225, 225)),
+                    BorderThickness = new Thickness(1),
+                    Background = Brushes.White,
+                    Margin = new Thickness(0, 0, 0, 8),
+                    Padding = new Thickness(10)
+                };
+
+                var cardContent = new StackPanel();
+
+                // Название метода
+                cardContent.Children.Add(new TextBlock
+                {
+                    Text = methodName,
+                    FontWeight = FontWeights.Bold,
+                    Foreground = Brushes.DarkBlue,
+                    Margin = new Thickness(0, 0, 0, 5)
+                });
+
+                // Значение
+                cardContent.Children.Add(new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    Children =
+                    {
+                        new TextBlock
+                        {
+                            Text = "Значение: ",
+                            FontWeight = FontWeights.SemiBold
+                        },
+                        new TextBlock
+                        {
+                            Text = $"{result.Value:F8}",
+                            FontWeight = FontWeights.Bold,
+                            Foreground = Brushes.DarkGreen
+                        }
+                    }
+                });
+
+                // Количество разбиений
+                cardContent.Children.Add(new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    Children =
+                    {
+                        new TextBlock
+                        {
+                            Text = "Разбиений: ",
+                            FontWeight = FontWeights.SemiBold
+                        },
+                        new TextBlock
+                        {
+                            Text = $"{result.Iterations}",
+                            Foreground = Brushes.DarkBlue
+                        }
+                    }
+                });
+
+                // Погрешность (если есть)
+                if (result.ErrorEstimate > 0)
+                {
+                    cardContent.Children.Add(new StackPanel
+                    {
+                        Orientation = Orientation.Horizontal,
+                        Children =
+                    {
+                        new TextBlock
+                        {
+                            Text = "Погрешность: ",
+                            FontWeight = FontWeights.SemiBold
+                        },
+                        new TextBlock
+                        {
+                            Text = $"{result.ErrorEstimate:E2}",
+                            Foreground = Brushes.DarkRed
+                        }
+                    }
+                    });
+                }
+
+                card.Child = cardContent;
+                resultsPanel.Children.Add(card);
+            }
+
+            spResults.Children.Add(resultsPanel);
+
+            // Информация о графике
+            var firstResult = results.Values.First();
+            if (firstResult.Iterations > MAX_PARTITIONS_TO_DRAW && _drawPartitions)
+            {
+                lblPlotWarning.Text = $"График построен для {MAX_PARTITIONS_TO_DRAW} разбиений (из {firstResult.Iterations}) для лучшей видимости";
+            }
+            else
+            {
+                lblPlotWarning.Text = "";
+            }
+
+            lblIterationInfo.Text = $"Всего разбиений: {firstResult.Iterations}";
         }
 
         private string GetMethodName(IntegrationMethod method)
         {
             return method switch
             {
-                IntegrationMethod.RectangleLeft => "Прямоуг. (лев.)",
-                IntegrationMethod.RectangleRight => "Прямоуг. (прав.)",
-                IntegrationMethod.RectangleMidpoint => "Прямоуг. (сред.)",
-                IntegrationMethod.Trapezoidal => "Трапеций",
-                IntegrationMethod.Simpson => "Симпсона",
-                _ => "Неизвестный"
+                IntegrationMethod.RectangleLeft => "Метод левых прямоугольников",
+                IntegrationMethod.RectangleRight => "Метод правых прямоугольников",
+                IntegrationMethod.RectangleMidpoint => "Метод средних прямоугольников",
+                IntegrationMethod.Trapezoidal => "Метод трапеций",
+                IntegrationMethod.Simpson => "Метод Симпсона",
+                _ => "Неизвестный метод"
             };
         }
 
         private void PlotIntegration(double a, double b, Dictionary<IntegrationMethod, IntegrationResult> results)
         {
             PlotModel.Series.Clear();
+            lblPlotWarning.Text = "";
 
             // Рисуем функцию
             PlotFunction(a, b);
 
+            // Если рисование разбиений отключено или слишком много разбиений, не рисуем
+            if (!_drawPartitions || results.Count == 0)
+                return;
+
             // Определяем какое N использовать для отрисовки
-            int nToPlot = results.Values.FirstOrDefault()?.Iterations ?? int.Parse(txtN.Text);
+            var firstResult = results.Values.First();
+            int nToPlot = firstResult.Iterations;
+
+            // Если разбиений слишком много, ограничиваем для визуализации
+            if (nToPlot > MAX_PARTITIONS_TO_DRAW)
+            {
+                nToPlot = MAX_PARTITIONS_TO_DRAW;
+                lblPlotWarning.Text = $"График построен для {nToPlot} разбиений (из {firstResult.Iterations}) для лучшей видимости";
+            }
 
             // Рисуем разбиения для ВСЕХ выбранных методов
             foreach (var method in results.Keys)
             {
-                PlotMethodPartitions(a, b, nToPlot, method);
+                if (method == IntegrationMethod.Simpson)
+                {
+                    // Для метода Симпсона убедимся, что n четное
+                    int simpsonN = (nToPlot % 2 == 0) ? nToPlot : nToPlot - 1;
+                    if (simpsonN >= 2)
+                        PlotMethodPartitions(a, b, simpsonN, method);
+                }
+                else
+                {
+                    if (nToPlot >= 2)
+                        PlotMethodPartitions(a, b, nToPlot, method);
+                }
             }
 
             PlotModel.InvalidatePlot(true);
@@ -272,6 +378,8 @@ namespace WpfApp1.IntegralProg
 
         private void PlotFunction(double a, double b)
         {
+            if (_calculator == null) return;
+
             functionSeries = new LineSeries
             {
                 Title = $"f(x) = {txtFunction.Text}",
@@ -301,7 +409,7 @@ namespace WpfApp1.IntegralProg
 
         private void PlotMethodPartitions(double a, double b, int n, IntegrationMethod method)
         {
-            if (n <= 0) return;
+            if (n <= 0 || _calculator == null) return;
 
             // Для Симпсона убедимся, что n четное
             if (method == IntegrationMethod.Simpson && n % 2 != 0)
@@ -353,15 +461,10 @@ namespace WpfApp1.IntegralProg
 
         private void PlotSimplePartitions(double a, double b, int n, double h, IntegrationMethod method, OxyColor color, string title)
         {
-            if (n < 2)
+            if (n < 2 || _calculator == null)
             {
                 // Не рисуем, если недостаточно разбиений
                 return;
-            }
-            if (n % 2 != 0)
-            {
-                n--;
-                if (n < 2) return;
             }
 
             var partitionSeries = new LineSeries
@@ -426,7 +529,7 @@ namespace WpfApp1.IntegralProg
 
         private void PlotSimpsonPartitions(double a, double b, int n, OxyColor color, string title)
         {
-            if (n < 2) return;
+            if (n < 2 || _calculator == null) return;
 
             var simpsonSeries = new LineSeries
             {
@@ -492,6 +595,47 @@ namespace WpfApp1.IntegralProg
             PlotModel.Series.Add(simpsonSeries);
         }
 
+        private void ShowProgress(bool show, string message = "")
+        {
+            if (show)
+            {
+                _isCalculating = true;
+                progressBar.Visibility = Visibility.Visible;
+                lblProgress.Visibility = Visibility.Visible;
+                lblProgress.Text = message;
+                progressBar.IsIndeterminate = true;
+                btnCalculate.IsEnabled = false;
+                lblStatus.Text = message;
+            }
+            else
+            {
+                _isCalculating = false;
+                progressBar.Visibility = Visibility.Collapsed;
+                lblProgress.Visibility = Visibility.Collapsed;
+                progressBar.IsIndeterminate = false;
+                btnCalculate.IsEnabled = true;
+            }
+        }
+
+        private void UpdateBoundsInfo()
+        {
+            try
+            {
+                double a = double.Parse(txtA.Text.Replace(",", "."), CultureInfo.InvariantCulture);
+                double b = double.Parse(txtB.Text.Replace(",", "."), CultureInfo.InvariantCulture);
+                tbBounds.Text = $"[{a:F2}, {b:F2}]";
+            }
+            catch
+            {
+                tbBounds.Text = "[?, ?]";
+            }
+        }
+
+        private void UpdateFunctionInfo()
+        {
+            tbFunction.Text = txtFunction.Text;
+        }
+
         // Пошаговый режим
         private void StartStepByStep_Click(object sender, RoutedEventArgs e)
         {
@@ -539,15 +683,12 @@ namespace WpfApp1.IntegralProg
                 _currentStep++;
                 int currentN = Math.Min(4 * _currentStep, maxN);
 
-                List<IntegrationMethod> methods = new List<IntegrationMethod>();
-                if (cbRectLeft.IsChecked == true) methods.Add(IntegrationMethod.RectangleLeft);
-                if (cbRectRight.IsChecked == true) methods.Add(IntegrationMethod.RectangleRight);
-                if (cbRectMid.IsChecked == true) methods.Add(IntegrationMethod.RectangleMidpoint);
-                if (cbTrapezoid.IsChecked == true) methods.Add(IntegrationMethod.Trapezoidal);
-                if (cbSimpson.IsChecked == true)
+                List<IntegrationMethod> methods = GetSelectedMethods();
+                if (methods.Count == 0)
                 {
-                    methods.Add(IntegrationMethod.Simpson);
-                    if (currentN % 2 != 0) currentN++; // Делаем четным для Симпсона
+                    MessageBox.Show("Выберите хотя бы один метод интегрирования!", "Внимание",
+                                  MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
                 }
 
                 bool autoN = miAutoN.IsChecked == true;
@@ -621,7 +762,7 @@ namespace WpfApp1.IntegralProg
             btnCalculate.IsEnabled = true;
             _iterationHistory.Clear();
             _currentStep = 0;
-            lblStepInfo.Text = "";
+            lblStepInfo.Text = "Готов к расчету";
             lblStatus.Text = "Готов к работе";
         }
 
@@ -672,9 +813,9 @@ namespace WpfApp1.IntegralProg
             }
 
             // Проверка N
-            if (n <= 0 || n > 10000)
+            if (n <= 0 || n > 1000000)
             {
-                MessageBox.Show("Количество разбиений N должно быть от 1 до 10000!", "Ошибка ввода",
+                MessageBox.Show("Количество разбиений N должно быть от 1 до 1000000!", "Ошибка ввода",
                               MessageBoxButton.OK, MessageBoxImage.Warning);
                 return false;
             }
@@ -687,7 +828,7 @@ namespace WpfApp1.IntegralProg
             txtA.Text = "0";
             txtB.Text = "3.14159";
             txtEpsilon.Text = "0.0001";
-            txtN.Text = "10";
+            txtN.Text = "1000";
             txtFunction.Text = "sin(x)";
 
             // Сброс чекбоксов
@@ -696,24 +837,27 @@ namespace WpfApp1.IntegralProg
             cbRectMid.IsChecked = false;
             cbTrapezoid.IsChecked = true;
             cbSimpson.IsChecked = true;
+            miDrawPartitions.IsChecked = true;
+            _drawPartitions = true;
 
             // Очистка результатов
             spResults.Children.Clear();
-            tbRectLeft.Text = tbRectRight.Text = tbRectMid.Text = tbTrapezoid.Text = tbSimpson.Text = "-";
-            tbOptimalMethod.Text = "Метод: -";
-            tbOptimalValue.Text = "Значение: -";
-            tbOptimalN.Text = "Разбиений: -";
-            tbOptimalError.Text = "Погрешность: -";
 
-            lblStepInfo.Text = "";
+            lblStepInfo.Text = "Готов к расчету";
+            lblIterationInfo.Text = "";
             lblStatus.Text = "Готов к работе";
             lblTime.Text = "Время: 0 мс";
-            lblIntegralBounds.Text = "∫[a,b] f(x)dx";
+            lblIntegralInfo.Text = "∫[a,b] f(x)dx";
+            lblPlotWarning.Text = "";
+            lblDrawingInfo.Text = "Рисование: включено";
 
             // Очистка графика
             PlotModel.Series.Clear();
             InitializePlotModel();
             ResetStepMode();
+
+            UpdateBoundsInfo();
+            UpdateFunctionInfo();
         }
 
         private void Exit_Click(object sender, RoutedEventArgs e)
@@ -786,15 +930,16 @@ namespace WpfApp1.IntegralProg
             MessageBox.Show(aboutText, "О методах интегрирования",
                           MessageBoxButton.OK, MessageBoxImage.Information);
         }
+
         private void AutoNCheckBox_Checked(object sender, RoutedEventArgs e)
         {
             miAutoN.IsChecked = true;
             txtEpsilon.IsEnabled = true;
             txtEpsilon.Background = System.Windows.Media.Brushes.White;
-            txtN.IsEnabled = false;
-            txtN.Background = System.Windows.Media.Brushes.LightGray;
-            tbModeInfo.Text = "Автоматический выбор N";
-            tbPrecisionInfo.Text = $"Точность: {txtEpsilon.Text}";
+            txtN.IsEnabled = true;
+            txtN.Background = System.Windows.Media.Brushes.White;
+            txtN.ToolTip = "Максимальное количество разбиений";
+            tbMode.Text = "Автоматический выбор N";
             lblCurrentMode.Text = "Режим: автоматический выбор N";
             lblStatus.Text = "Включен автоматический выбор N (удваивает N до достижения точности)";
         }
@@ -806,11 +951,12 @@ namespace WpfApp1.IntegralProg
             txtEpsilon.Background = System.Windows.Media.Brushes.LightGray;
             txtN.IsEnabled = true;
             txtN.Background = System.Windows.Media.Brushes.White;
-            tbModeInfo.Text = $"Фиксированное N: {txtN.Text}";
-            tbPrecisionInfo.Text = "Точность не используется";
+            txtN.ToolTip = "Количество разбиений";
+            tbMode.Text = $"Фиксированное N: {txtN.Text}";
             lblCurrentMode.Text = "Режим: фиксированное N";
             lblStatus.Text = "Используется указанное количество разбиений";
         }
+
         private void AboutProgram_Click(object sender, RoutedEventArgs e)
         {
             MessageBox.Show("IntegralProg v1.0\nВычисление определенных интегралов\n\n" +
@@ -846,6 +992,46 @@ namespace WpfApp1.IntegralProg
                 axis.MinorGridlineStyle = (miShowGrid.IsChecked == true) ? LineStyle.Dot : LineStyle.None;
             }
             PlotModel.InvalidatePlot(true);
+        }
+
+        private void DrawPartitions_Click(object sender, RoutedEventArgs e)
+        {
+            _drawPartitions = miDrawPartitions.IsChecked == true;
+            lblDrawingInfo.Text = _drawPartitions ? "Рисование: включено" : "Рисование: выключено";
+
+            // Если есть предыдущие результаты, перерисовываем график
+            if (_calculator != null && PlotModel.Series.Count > 0)
+            {
+                try
+                {
+                    double a = double.Parse(txtA.Text.Replace(",", "."), CultureInfo.InvariantCulture);
+                    double b = double.Parse(txtB.Text.Replace(",", "."), CultureInfo.InvariantCulture);
+
+                    // Сохраняем текущие результаты
+                    var currentMethods = GetSelectedMethods();
+                    if (currentMethods.Count > 0)
+                    {
+                        // Получаем последние результаты
+                        var results = new Dictionary<IntegrationMethod, IntegrationResult>();
+                        foreach (var method in currentMethods)
+                        {
+                            var n = int.Parse(txtN.Text);
+                            if (method == IntegrationMethod.Simpson && n % 2 != 0) n++;
+                            var result = _calculator.CalculateWithFixedN(a, b, n, new List<IntegrationMethod> { method });
+                            if (result.ContainsKey(method))
+                                results[method] = result[method];
+                        }
+
+                        // Перерисовываем график
+                        PlotIntegration(a, b, results);
+                    }
+
+                    lblStatus.Text = _drawPartitions ?
+                        "Рисование разбиений включено" :
+                        "Рисование разбиений выключено";
+                }
+                catch { }
+            }
         }
 
         private void ColorFunctionBlue_Click(object sender, RoutedEventArgs e)
