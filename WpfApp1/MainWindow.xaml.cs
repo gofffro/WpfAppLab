@@ -80,5 +80,13 @@ namespace WpfApp1
             this.Hide();
             objIntergral.Show();
         }
+
+        private void Button_Click_Coordinate(object sender, RoutedEventArgs e)
+        {
+            CoordinateDescentWindow.CoordinateDescentWindow objCoordinate = new CoordinateDescentWindow.CoordinateDescentWindow();
+            objCoordinate.Closed += Window_Closed;
+            this.Hide();
+            objCoordinate.Show();
+        }
     }
 }
