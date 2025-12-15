@@ -6,7 +6,7 @@
         xmlns:oxy="http://oxyplot.org/wpf"
         mc:Ignorable="d"
         Title="Метод покоординатного спуска" 
-        Height="800" Width="1200"
+        Height="900" Width="1400"
         WindowStartupLocation="CenterScreen"
         Closing="Window_Closing">
 
@@ -37,6 +37,8 @@
             <MenuItem Header="Настройки">
                 <MenuItem Header="Показать сетку" IsCheckable="True" IsChecked="True" 
                           Name="miShowGrid" Click="ShowGrid_Click"/>
+                <MenuItem Header="Показать траекторию" Name="miShowTrajectory" IsCheckable="True" IsChecked="True"
+                          Checked="ShowTrajectory_Checked" Unchecked="ShowTrajectory_Unchecked"/>
                 <MenuItem Header="Тип спуска" Name="miDescentType" IsCheckable="True" IsChecked="True"
                           Click="DescentType_Click">
                     <MenuItem.ToolTip>
@@ -150,14 +152,15 @@
             </Grid>
         </GroupBox>
 
-        <!-- Results and Chart -->
+        <!-- Results and Charts -->
         <Grid Grid.Row="2" Margin="10">
             <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="450"/>
             </Grid.ColumnDefinitions>
 
-            <!-- Chart -->
+            <!-- Chart 1: График функции -->
             <GroupBox Grid.Column="0" Header="График функции и траектория спуска" Margin="0,0,5,0" Padding="10">
                 <Grid>
                     <Grid.RowDefinitions>
@@ -174,8 +177,23 @@
                 </Grid>
             </GroupBox>
 
+            <!-- Chart 2: График сходимости -->
+            <GroupBox Grid.Column="1" Header="График сходимости" Margin="5,0,5,0" Padding="10">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <oxy:PlotView Name="plotConvergenceView" Grid.Row="0" Margin="0"/>
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="5,5" HorizontalAlignment="Center">
+                        <TextBlock Name="lblConvergenceInfo" Text="Зависимость значения функции от номера итерации" 
+                                   Foreground="Gray" FontSize="11"/>
+                    </StackPanel>
+                </Grid>
+            </GroupBox>
+
             <!-- Results -->
-            <GroupBox Grid.Column="1" Header="Результаты вычислений" Margin="5,0,0,0" Padding="10">
+            <GroupBox Grid.Column="2" Header="Результаты вычислений" Margin="5,0,0,0" Padding="10">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -246,6 +264,10 @@
                                         <TextBlock Text="Время: " FontWeight="SemiBold"/>
                                         <TextBlock Name="tbMinTime" Text="-" Foreground="#1976D2"/>
                                     </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
+                                        <TextBlock Text="Сходимость: " FontWeight="SemiBold"/>
+                                        <TextBlock Name="tbMinConvergence" Text="-" Foreground="#1976D2"/>
+                                    </StackPanel>
                                 </StackPanel>
                             </Border>
 
@@ -272,6 +294,10 @@
                                     <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
                                         <TextBlock Text="Время: " FontWeight="SemiBold"/>
                                         <TextBlock Name="tbMaxTime" Text="-" Foreground="#F57C00"/>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
+                                        <TextBlock Text="Сходимость: " FontWeight="SemiBold"/>
+                                        <TextBlock Name="tbMaxConvergence" Text="-" Foreground="#F57C00"/>
                                     </StackPanel>
                                 </StackPanel>
                             </Border>
