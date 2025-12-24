@@ -345,13 +345,11 @@ namespace WpfApp1
                 }
             }
 
-            // Добавляем последний сегмент если он есть
             if (currentSegment != null && currentSegment.Points.Count > 1)
             {
                 PlotModel.Series.Add(currentSegment);
             }
 
-            // Устанавливаем заголовок только для первой серии
             if (PlotModel.Series.Count > 0 && PlotModel.Series[0] is LineSeries firstSeries)
             {
                 firstSeries.Title = "Функция";

@@ -34,5 +34,8 @@
         <Button Content="Покоординатный спуск" HorizontalAlignment="Left" Margin="526,44,0,0" 
             VerticalAlignment="Top" Height="45" Width="200"
             Click="Button_Click_Coordinate" FontSize="14"/>
+        <Button Content="МНК" HorizontalAlignment="Left" Margin="526,121,0,0" 
+            VerticalAlignment="Top" Height="45" Width="200"
+            Click="Button_Click_LeastSquare" FontSize="14"/>
     </Grid>
 </Window>

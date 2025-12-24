@@ -9,6 +9,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using WpfApp1.IntegralProg;
+using WpfApp1.LeastSquareApp;
 using WpfApp1.OlimpSort;
 using WpfApp1.SLAY;
 
@@ -88,5 +89,14 @@ namespace WpfApp1
             this.Hide();
             objCoordinate.Show();
         }
+
+        private void Button_Click_LeastSquare(object sender, RoutedEventArgs e)
+        {
+            LeastSquare objSquare = new LeastSquare();
+            objSquare.Closed += Window_Closed;
+            this.Hide();
+            objSquare.Show();
+        }
+
     }
 }

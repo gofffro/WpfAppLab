@@ -1,0 +1,200 @@
+﻿<Window x:Class="WpfApp1.LeastSquareApp.LeastSquare"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:WpfApp1.LeastSquareApp"
+        xmlns:oxy="http://oxyplot.org/wpf"
+        mc:Ignorable="d"
+        Title="Метод наименьших квадратов" Height="700" Width="1200"
+        WindowStartupLocation="CenterScreen">
+
+    <DockPanel Background="#F5F6FA">
+
+        <!-- MENU -->
+        <Menu DockPanel.Dock="Top" Background="#FFFFFF">
+            <MenuItem Header="_Файл">
+                <MenuItem Header="Загрузить из Excel..." Click="LoadExcel_Click"/>
+                <MenuItem Header="Сохранить в Excel..." Click="SaveExcel_Click"/>
+                <Separator/>
+                <MenuItem Header="Выход" Click="Exit_Click"/>
+            </MenuItem>
+
+            <MenuItem Header="_Данные">
+                <MenuItem Header="Сгенерировать..." Click="Generate_Click"/>
+                <MenuItem Header="Очистить" Click="Clear_Click"/>
+                <Separator/>
+                <MenuItem Header="Заполнить пример" Click="FillSample_Click"/>
+            </MenuItem>
+
+            <MenuItem Header="_Расчет">
+                <MenuItem Header="Рассчитать" Click="Calculate_Click"/>
+            </MenuItem>
+
+            <MenuItem Header="_Вид">
+                <MenuItem Header="Показать сетку" IsCheckable="True" IsChecked="True" Click="ToggleGrid_Click" x:Name="miGrid"/>
+                <Separator/>
+                <MenuItem Header="Цвет кривой n=1">
+                    <MenuItem Header="Синий" Click="ColorLine1Blue_Click"/>
+                    <MenuItem Header="Красный" Click="ColorLine1Red_Click"/>
+                    <MenuItem Header="Зеленый" Click="ColorLine1Green_Click"/>
+                </MenuItem>
+                <MenuItem Header="Цвет кривой n=2">
+                    <MenuItem Header="Синий" Click="ColorLine2Blue_Click"/>
+                    <MenuItem Header="Красный" Click="ColorLine2Red_Click"/>
+                    <MenuItem Header="Зеленый" Click="ColorLine2Green_Click"/>
+                </MenuItem>
+            </MenuItem>
+
+            <MenuItem Header="_Справка">
+                <MenuItem Header="О методе МНК" Click="AboutLSQ_Click"/>
+                <MenuItem Header="О программе" Click="AboutProgram_Click"/>
+            </MenuItem>
+        </Menu>
+
+        <!-- STATUS BAR -->
+        <StatusBar DockPanel.Dock="Bottom" Background="#FFFFFF">
+            <StatusBarItem>
+                <TextBlock x:Name="lblStatus" Text="Готов к работе" />
+            </StatusBarItem>
+            <Separator/>
+            <StatusBarItem>
+                <TextBlock x:Name="lblInfo" Text="Точек: 0" />
+            </StatusBarItem>
+            <Separator/>
+            <StatusBarItem>
+                <TextBlock x:Name="lblTime" Text="Время: 0 мс" />
+            </StatusBarItem>
+        </StatusBar>
+
+        <!-- CONTENT -->
+        <Grid Margin="10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="430"/>
+                <ColumnDefinition Width="10"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- LEFT PANEL -->
+            <Border Grid.Column="0" Background="#FFFFFF" BorderBrush="#E1E1E1" BorderThickness="1" CornerRadius="8" Padding="12">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="10"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="12"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0">
+                        <TextBlock Text="Ввод точек" FontSize="18" FontWeight="SemiBold" Foreground="#1F2D3D"/>
+                        <TextBlock Margin="0,4,0,0" Text="Заполните таблицу (X, Y) или загрузите из Excel." Foreground="#6B7280"/>
+                    </StackPanel>
+
+                    <DataGrid Grid.Row="2"
+                              x:Name="dgPoints"
+                              AutoGenerateColumns="False"
+                              CanUserAddRows="True"
+                              CanUserDeleteRows="True"
+                              CanUserReorderColumns="False"
+                              CanUserResizeColumns="True"
+                              HeadersVisibility="Column"
+                              GridLinesVisibility="All"
+                              RowHeaderWidth="0"
+                              Background="#FFFFFF"
+                              BorderBrush="#E5E7EB"
+                              BorderThickness="1"
+                              SelectionUnit="FullRow"
+                              ItemsSource="{Binding Points}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="X" Binding="{Binding X, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
+                            <DataGridTextColumn Header="Y" Binding="{Binding Y, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <!-- GENERATION BLOCK -->
+                    <Border Grid.Row="4" Background="#F9FAFB" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="8" Padding="10">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="8"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="8"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Text="Генерация данных" FontWeight="SemiBold" Foreground="#1F2D3D"/>
+
+                            <Grid Grid.Row="2">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="10"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock VerticalAlignment="Center" Text="N:"/>
+                                <TextBox Grid.Column="1" x:Name="txtGenN" Text="12" Margin="6,0,0,0" Padding="6"/>
+
+                                <TextBlock Grid.Column="3" VerticalAlignment="Center" Text="Шум σ:"/>
+                                <TextBox Grid.Column="4" x:Name="txtGenNoise" Text="0.5" Margin="6,0,0,0" Padding="6"/>
+                            </Grid>
+
+                            <Grid Grid.Row="4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="10"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock VerticalAlignment="Center" Text="Xmin:"/>
+                                <TextBox Grid.Column="1" x:Name="txtGenXMin" Text="-5" Margin="6,0,0,0" Padding="6"/>
+
+                                <TextBlock Grid.Column="3" VerticalAlignment="Center" Text="Xmax:"/>
+                                <TextBox Grid.Column="4" x:Name="txtGenXMax" Text="5" Margin="6,0,0,0" Padding="6"/>
+                            </Grid>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- RIGHT PANEL -->
+            <Border Grid.Column="2" Background="#FFFFFF" BorderBrush="#E1E1E1" BorderThickness="1" CornerRadius="8" Padding="12">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="10"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="10"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0">
+                        <TextBlock Text="График и результаты" FontSize="18" FontWeight="SemiBold" Foreground="#1F2D3D"/>
+                        <TextBlock Margin="0,4,0,0" Text="Отображаются точки и аппроксимации n=1, n=2." Foreground="#6B7280"/>
+                    </StackPanel>
+
+                    <Border Grid.Row="2" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="8" Padding="8" Background="#FFFFFF">
+                        <oxy:PlotView x:Name="plotView"/>
+                    </Border>
+
+                    <Border Grid.Row="4" Background="#F9FAFB" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="8" Padding="10">
+                        <StackPanel>
+                            <TextBlock Text="Результаты" FontWeight="SemiBold" Foreground="#1F2D3D"/>
+                            <TextBlock x:Name="tbEq1" Margin="0,6,0,0" Text="n=1: —" FontFamily="Consolas" />
+                            <TextBlock x:Name="tbEq2" Margin="0,4,0,0" Text="n=2: —" FontFamily="Consolas" />
+                            <Separator Margin="0,8,0,8"/>
+                            <TextBlock x:Name="tbMetrics1" Text="Метрики n=1: —" FontFamily="Consolas"/>
+                            <TextBlock x:Name="tbMetrics2" Margin="0,4,0,0" Text="Метрики n=2: —" FontFamily="Consolas"/>
+                            <Separator Margin="0,8,0,8"/>
+                            <TextBlock x:Name="tbNotes" Foreground="#6B7280" Text="Подсказка: минимум 2 точки для n=1 и минимум 3 точки для n=2."/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Border>
+        </Grid>
+    </DockPanel>
+</Window>
