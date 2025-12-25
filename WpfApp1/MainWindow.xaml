@@ -5,37 +5,175 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:WpfApp1"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="Численные методы"
+        Height="550"
+        Width="900"
+        WindowStartupLocation="CenterScreen"
+        FontFamily="Segoe UI">
+
+    <!-- ===================== RESOURCES ===================== -->
+    <Window.Resources>
+
+        <Style x:Key="ModernButton" TargetType="Button">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="#2C5F9E"/>
+            <Setter Property="BorderBrush" Value="#2C5F9E"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Height" Value="42"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border"
+                                CornerRadius="6"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}">
+                            <ContentPresenter
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Margin="10,5"/>
+                        </Border>
+
+                        <ControlTemplate.Triggers>
+
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border"
+                                        Property="Background"
+                                        Value="#EEF4FC"/>
+                                <Setter TargetName="border"
+                                        Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect
+                                            BlurRadius="8"
+                                            ShadowDepth="0"
+                                            Color="#22000000"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border"
+                                        Property="Background"
+                                        Value="#DCE8F8"/>
+                                <Setter TargetName="border"
+                                        Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="0.97"
+                                                        ScaleY="0.97"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="border"
+                                        Property="Background"
+                                        Value="#F2F2F2"/>
+                                <Setter TargetName="border"
+                                        Property="BorderBrush"
+                                        Value="#CCCCCC"/>
+                                <Setter Property="Foreground"
+                                        Value="#AAAAAA"/>
+                            </Trigger>
+
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+    </Window.Resources>
+
+    <!-- ===================== BACKGROUND ===================== -->
     <Window.Background>
         <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-            <GradientStop Color="#ebf2fa" Offset="0.0" />
-            <GradientStop Color="#e4edf6" Offset="0.6" />
-            <GradientStop Color="#dae3f0" Offset="1.0" />
+            <GradientStop Color="#F0F5FC" Offset="0.0"/>
+            <GradientStop Color="#E8EFF8" Offset="0.4"/>
+            <GradientStop Color="#DDE6F2" Offset="1.0"/>
         </LinearGradientBrush>
     </Window.Background>
 
+    <!-- ===================== CONTENT ===================== -->
     <Grid>
-        <Button Content="Метод дихотомии" HorizontalAlignment="Left" Margin="20,44,0,0" VerticalAlignment="Top" Height="45" Width="200
-                " Click="Button_Click_Dichotomy" FontSize="14"/>
-        <Button Content="Метод СЛАУ" HorizontalAlignment="Left" Margin="20,120,0,0" VerticalAlignment="Top" Height="46" Width="200
-                " Click="Button_Click_SLAY" FontSize="14"/>
-        <Button Content="Метод золотого сечения" HorizontalAlignment="Left" Margin="275,44,0,0" VerticalAlignment="Top" Height="45" Width="200
-                
-                " Click="Button_Click_Golden" FontSize="14"/>
-        <Button Content="Метод Ньютона" HorizontalAlignment="Left" Margin="275,120,0,0" 
-        VerticalAlignment="Top" Height="46" Width="200"
-        Click="Button_Click_Newton" FontSize="14"/>
-        <Button Content="Олимпиадные сортировки" HorizontalAlignment="Left" Margin="20,188,0,0" 
-            VerticalAlignment="Top" Height="46" Width="200"
-            Click="Button_Click_OlimpSort" FontSize="14"/>
-        <Button Content="Определенный интеграл" HorizontalAlignment="Left" Margin="275,188,0,0" 
-            VerticalAlignment="Top" Height="46" Width="200"
-            Click="Button_Click_Integral" FontSize="14"/>
-        <Button Content="Покоординатный спуск" HorizontalAlignment="Left" Margin="526,44,0,0" 
-            VerticalAlignment="Top" Height="45" Width="200"
-            Click="Button_Click_Coordinate" FontSize="14"/>
-        <Button Content="МНК" HorizontalAlignment="Left" Margin="526,121,0,0" 
-            VerticalAlignment="Top" Height="45" Width="200"
-            Click="Button_Click_LeastSquare" FontSize="14"/>
+        <Grid Margin="30">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Заголовок -->
+            <StackPanel Grid.Row="0"
+                        HorizontalAlignment="Center"
+                        Margin="0,10,0,30">
+                <TextBlock Text="Численные методы"
+                           FontSize="32"
+                           FontWeight="Light"
+                           Foreground="#2C5F9E"
+                           HorizontalAlignment="Center"/>
+            </StackPanel>
+
+            <!-- Кнопки -->
+            <Grid Grid.Row="1" VerticalAlignment="Center">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="20"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Левая колонка -->
+                <StackPanel Grid.Column="0">
+                    <Button Content="Метод дихотомии"
+                            Style="{StaticResource ModernButton}"
+                            Click="Button_Click_Dichotomy"
+                            Margin="0,0,0,12"/>
+
+                    <Button Content="Решение СЛАУ"
+                            Style="{StaticResource ModernButton}"
+                            Click="Button_Click_SLAY"
+                            Margin="0,0,0,12"/>
+
+                    <Button Content="Метод золотого сечения"
+                            Style="{StaticResource ModernButton}"
+                            Click="Button_Click_Golden"
+                            Margin="0,0,0,12"/>
+
+                    <Button Content="Метод Ньютона"
+                            Style="{StaticResource ModernButton}"
+                            Click="Button_Click_Newton"
+                            Margin="0,0,0,12"/>
+                </StackPanel>
+
+                <!-- Правая колонка -->
+                <StackPanel Grid.Column="2">
+                    <Button Content="Метод покоординатного спуска"
+                            Style="{StaticResource ModernButton}"
+                            Click="Button_Click_Coordinate"
+                            Margin="0,0,0,12"/>
+
+                    <Button Content="Метод наименьших квадратов"
+                            Style="{StaticResource ModernButton}"
+                            Click="Button_Click_LeastSquare"
+                            Margin="0,0,0,12"/>
+
+                    <Button Content="Олимпиадные сортировки"
+                            Style="{StaticResource ModernButton}"
+                            Click="Button_Click_OlimpSort"
+                            Margin="0,0,0,12"/>
+
+                    <Button Content="Решение интеграла"
+                            Style="{StaticResource ModernButton}"
+                            Click="Button_Click_Integral"
+                            Margin="0,0,0,12"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- Подвал -->
+            <StackPanel Grid.Row="2"
+                        HorizontalAlignment="Center"
+                        Margin="0,20,0,10"/>
+        </Grid>
     </Grid>
 </Window>
